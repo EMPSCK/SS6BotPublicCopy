@@ -422,7 +422,7 @@ async def handle_text_message(message: types.Message):
         if markup == -1:
             return message.answer('❌Ошибка')
 
-        await message.answer(f'📋Введенные группы: {", ".join([str(i) for i in group_list])}\n\n' + ans, reply_markup=markup)
+        await message.answer(ans, reply_markup=markup)
     except Exception as e:
         print(e)
         await message.answer('❌Ошибка')
@@ -447,7 +447,7 @@ async def f4(callback: types.CallbackQuery):
         if markup == -1:
             return callback.message.answer('❌Ошибка')
 
-        await callback.message.edit_text(f'📋Введенные группы: {", ".join([str(i) for i in group_list])}\n\n' + ans, reply_markup=markup)
+        await callback.message.edit_text(ans, reply_markup=markup)
     except Exception as e:
         print(e)
         await callback.answer('❌Изменения не обнаружены')

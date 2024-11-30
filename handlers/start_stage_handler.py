@@ -93,8 +93,6 @@ async def cmd_start(callback: types.CallbackQuery):
             reply_markup=chairmans_kb.update_status_kb)
 
 
-
-
 @router.message(Command("updateftsarrlist"))
 async def update_ftsarr_judges_list(message: types.Message):
     access = [6887839538, 834140698, 363846616, 5824158064]

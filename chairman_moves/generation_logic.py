@@ -36,9 +36,11 @@ async def get_ans(data):
     relatives_dict = await relatives_list_change(relatives_list)
 
     # 1. сортировка входящего списка групп в зависимости от требуемой для судейства категории
+
     group_list.sort(key=lambda x: x[2] * -1)
 
     # 2. запрашиваем и обрабатываем список судей
+
     ans = await get_all_judges_yana(data['compId'])
     #print(relatives_list)
     #print(black_list)
@@ -53,21 +55,20 @@ async def get_ans(data):
         all_judges_list[i['id']] = i
 
     all_judges_list = dict(sorted(all_judges_list.items(), key=lambda item: item[1]['group_counter']))
+    all_zgs_list = await judges_zgs_filter(all_judges_list)  # доступные згс из базы
 
+
+    #ГЕНЕРАЦИЯ ЗГС
     all_groups_finish_jud = []
     sucess_result = 0
-    # 3. начинаем работать с каждой группой из переданного списка
     for i in group_list:
+        group_number = i[0]
         json_end = dict()
-
-        """
-        Если нам передали несколько групп, то есть мы должны генерить в параллель
-        и если это уже не первая группа и предыдущая была сгенерена успешно
-        тогда из общего списка судей выкидываем всех кого нагенерили в панельки ранее
-        """
         if sucess_result == 1:
             group_all_judges_list = all_judges_list.copy()
             for j in group_finish_judges_list:
+                all_groups_finish_jud.append(j)
+            for x in zgs_end_list:
                 all_groups_finish_jud.append(j)
             for jj in all_groups_finish_jud:
                 group_all_judges_list.pop(jj, None)
@@ -78,6 +79,51 @@ async def get_ans(data):
             group_all_judges_list = all_judges_list.copy()  # общий список судей из которого будем случайно выбирать
             group_finish_judges_list = []  # список, в котором финально будем передавать судей, оценивающих категорию
             regions = {}  # счетчик судейств по регионам
+            zgs_end_list = []  # список згс которых набрали
+            zgs_list_generation = all_zgs_list.copy()  # динамический список для генерации
+
+        zgs_number_to_have = i[4] #сколко нужно набратғ ЗГС в группу
+        if len(zgs_list_generation) >= zgs_number_to_have:
+            while len(zgs_end_list) < zgs_number_to_have:
+                if len(zgs_list_generation) > 0:
+
+                    zgs_random_choice = await get_random_judge(zgs_list_generation)
+                    zgs_end_list.append(zgs_random_choice['id'])
+                    zgs_list_generation = await delete_club_from_judges(zgs_list_generation, zgs_random_choice['Club'])
+
+                else:
+                    sucess_result = 0
+                    json_end['group_number'] = group_number
+                    json_end['status'] = "fail"
+                    json_end['judge_id'] = []
+                    json_end['zgs_id'] = []
+                    json_end['msg'] = 'Не удалось сформировать бригаду с учетом заданных условий. Попробуйте уменьшить количество ЗГС'
+                    break
+            else:
+                json_end['group_number'] = group_number
+                json_end['status'] = "success"
+                json_end['judge_id'] = list()
+                json_end['zgs_id'] = list()
+                for d in zgs_end_list:
+                    json_end['judge_id'].append(all_zgs_list[d]['id'])
+                    json_end['zgs_id'].append(all_zgs_list[d]['id'])
+
+        else:
+            sucess_result = 0
+            json_end['group_number'] = group_number
+            json_end['status'] = "fail"
+            json_end['judge_id'] = []
+            json_end['zgs_id'] = []
+            json_end[
+                'msg'] = 'Не удалось сформировать бригаду с учетом заданных условий. Попробуйте уменьшить количество ЗГС'
+
+    # 3. начинаем работать с каждой группой из переданного списка
+
+        """
+        Если нам передали несколько групп, то есть мы должны генерить в параллель
+        и если это уже не первая группа и предыдущая была сгенерена успешно
+        тогда из общего списка судей выкидываем всех кого нагенерили в панельки ранее
+        """
 
         # определяем параметры группы
         n_judges, min_category = i[1], i[2]
@@ -85,7 +131,6 @@ async def get_ans(data):
             min_category = 0
         #otd_num = group_list[i]['otd_num']
 
-        group_number = i[0]
         n_judges_category = 0
 
         # определяем условия на регионы судей
@@ -102,6 +147,10 @@ async def get_ans(data):
                                             black_list)  # 5. определяем судей с запретом на судейство в конкретной категории
         group_all_judges_list = await judges_black_list_filter(group_all_judges_list,
                                                          black_list_cat)  # 6. удаляем таких судей из категории
+
+
+        group_all_judges_list = await judges_black_list_filter(group_all_judges_list,
+                                                       zgs_end_list)
 
 
         if len(group_all_judges_list) >= n_judges:
@@ -153,9 +202,11 @@ async def get_ans(data):
             else:
                 json_end['group_number'] = group_number
                 json_end['status'] = "success"
-                json_end['judge_id'] = list()
+                #json_end['judge_id'] = list()
+                json_end['lin_id'] = list()
                 for i in group_finish_judges_list:
                     json_end['judge_id'].append(all_judges_list[i]['id'])
+                    json_end['lin_id'].append(all_judges_list[i]['id'])
         else:
             sucess_result = 0
             json_end['group_number'] = group_number
@@ -167,7 +218,6 @@ async def get_ans(data):
 
     #json.loads(json.dumps(json_export))
     ans = await json_to_message(json_export, data)
-    #print(regions)
     return ans, json_export
 
 
@@ -185,7 +235,7 @@ async def get_group_params(comp_id, group_id):
         with conn:
             cur = conn.cursor()
             cur.execute(
-                f'''SELECT groupNumber,judges, minCategoryId, sport
+                f'''SELECT groupNumber,judges, minCategoryId, sport, zgsNumber
                  from competition_group
                  WHERE compId = {comp_id} and groupNumber = {group_id}
                                         ''')
@@ -198,8 +248,9 @@ async def get_group_params(comp_id, group_id):
                 if data['minCategoryId'] is None:
                     data['minCategoryId'] = 0
 
-                return data['groupNumber'], data['judges'], data['minCategoryId'], data['sport']
-    except:
+                return data['groupNumber'], data['judges'], data['minCategoryId'], data['sport'], data['zgsNumber']
+    except Exception as e:
+        print(e)
         return 0
 
 
@@ -308,7 +359,7 @@ async def get_all_judges_yana(compId):
         with conn:
             cur = conn.cursor()
             cur.execute(
-               f"SELECT id, lastName, firstName, SPORT_Category, RegionId, Club, bookNumber, group_counter, DSFARR_Category_Id FROM competition_judges WHERE compId = {compId} and active = 1")  # выбираем только активных на данный момент судей
+               f"SELECT id, lastName, firstName, SPORT_Category, RegionId, Club, bookNumber, group_counter, DSFARR_Category_Id, workCode FROM competition_judges WHERE compId = {compId} and active = 1")  # выбираем только активных на данный момент судей
             data = cur.fetchall()
             return data
 
@@ -342,6 +393,13 @@ async def judges_category_filter(all_judges_list, min_category):
         if all_judges_list_1[i]['SPORT_Category_decoded'] is None:
             all_judges_list_1[i]['SPORT_Category_decoded'] = 9
         if all_judges_list_1[i]['SPORT_Category_decoded'] < min_category:
+            all_judges_list_1.pop(i, None)
+    return all_judges_list_1
+
+async def judges_zgs_filter(all_judges_list):
+    all_judges_list_1 = all_judges_list.copy()
+    for i in all_judges_list:
+        if all_judges_list_1[i]['workCode'] != 1:
             all_judges_list_1.pop(i, None)
     return all_judges_list_1
 
@@ -447,15 +505,17 @@ async def ids_to_names(judges, active_comp):
 
 async def json_to_message(json_export, data):
     r = []
+
     for key in json_export:
         group_name = await get_group_name(data['compId'], key)
         if json_export[key]['status'] == 'success':
-            peoples = await ids_to_names(json_export[key]['judge_id'], data['compId'])
-            text = f'Группа №{key}. {group_name}\nЛинейные судьи: {peoples}'
+            peoples = await ids_to_names(json_export[key]['lin_id'], data['compId'])
+            zgs = await ids_to_names(json_export[key]['zgs_id'], data['compId'])
+            text = f'{key}. {group_name}\nЗгс. {zgs}.\nЛинейные судьи: {peoples}.'
             r.append(text)
 
         if json_export[key]['status'] == 'fail':
-            text = f'Группа №{key}. {group_name}\nЛинейные судьи: {json_export[key]["msg"]}'
+            text = f'Группа №{key}.\n{json_export[key]["msg"]}'
             r.append(text)
     return '\n\n'.join(r)
 
