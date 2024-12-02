@@ -12,6 +12,7 @@ async def get_ans(data):
     group_list_raw = data['groupList']
     for group_id_inp in group_list_raw:
         r = await get_group_params(data['compId'], group_id_inp)
+
         #Не нашли группу
         if r == "undefinedGroup":
             json_end['group_number'] = group_id_inp
@@ -605,3 +606,132 @@ async def check_category_date(judges, compId):
         return -1
 
 
+async def agregate_generation_lin_zgs_judges(json):
+    lin = []
+    zgs = []
+    for key in json:
+
+        if json[key]['status'] == 'success':
+            lin += json[key]['lin_id']
+            zgs += json[key]['zgs_id']
+
+    return lin, zgs
+
+
+async def unpac_json(json):
+    ans = {}
+    for key in json:
+        if json[key]['status'] == 'success':
+            for i in json[key]['judge_id']:
+                ans[i] = json[key]['group_number']
+    return ans
+
+
+async def get_judges_list(json):
+    ans = {}
+    for key in json:
+        if json[key]['status'] == 'success':
+            for i in json[key]['lin_id']:
+                ans[i] = [key, 'l', json[key]['lin_id']]
+
+            for i in json[key]['zgs_id']:
+                ans[i] = [key, 'z', json[key]['zgs_id']]
+
+    return ans
+
+
+async def same_judges_filter(all_judges, judges):
+    all_judges_01 = all_judges.copy()
+    for i in range(len(judges)):
+        for j in all_judges:
+            if j['id'] == judges[i]:
+                all_judges_01.remove(j)
+
+    return all_judges_01
+
+
+async def distinct_clubs_filter(clubs_list, all_judges):
+    all_judges_01 = all_judges.copy()
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            for i in all_judges:
+                cur.execute(f'select City, Club from competition_judges where id = {i["id"]}')
+                req = cur.fetchone()
+                if req['City'] is not None and req['Club'] is not None:
+                    if f"{req['City']}, {req['Club']}" in clubs_list:
+                        all_judges_01.remove(i)
+        return all_judges_01
+    except Exception as e:
+        return -1
+
+async def category_filter(all_judges, minCategoryId, compId):
+    all_judges_01 = all_judges.copy()
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"select date2 from competition where compId = {compId}")
+            date2 = cur.fetchone()
+            date2 = date2['date2']
+
+            for jud in all_judges:
+                category = jud['SPORT_Category']
+                SPORT_CategoryDate = jud['SPORT_CategoryDate']
+                SPORT_CategoryDateConfirm = jud['SPORT_CategoryDateConfirm']
+                code = jud['DSFARR_Category_Id']
+
+                if code is None:
+                    code = 9
+
+                if code < minCategoryId:
+                    all_judges_01.remove(jud)
+                    continue
+
+                if category == None or SPORT_CategoryDate == None or SPORT_CategoryDateConfirm == None:
+                    continue
+
+                if type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) == str:
+                    all_judges_01.remove(jud)
+                    continue
+
+                elif type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) != str:
+                    CategoryDate = SPORT_CategoryDate
+
+                elif type(SPORT_CategoryDateConfirm) != str and type(SPORT_CategoryDate) == str:
+                    CategoryDate = SPORT_CategoryDateConfirm
+
+                else:
+                    CategoryDate = max(SPORT_CategoryDateConfirm, SPORT_CategoryDate)
+
+                a = date2 - CategoryDate
+                a = a.days
+                if code == 5 or code == 4:
+                    if a - 365*2 > 0:
+                        all_judges_01.remove(jud)
+
+                elif code == 3:
+                    if a - 365 > 0:
+                        all_judges_01.remove(jud)
+
+                elif code == 6:
+                    if a - 365*4 > 0:
+                        all_judges_01.remove(jud)
+        return all_judges_01
+    except Exception as e:
+        return -1

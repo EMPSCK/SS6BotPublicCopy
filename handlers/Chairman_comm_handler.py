@@ -407,17 +407,19 @@ async def handle_text_message(message: types.Message):
         group_list = [int(i.strip('\n').strip('.')) for i in message.text.split()]
         active_comp = await general_queries.get_CompId(message.from_user.id)
         regionId = await chairman_queries.get_regionId(active_comp)
+
         if active_comp is None:
             return await message.answer('❌Ошибка. Необходимо задать активный турнир')
 
         data = {'compId': active_comp, "regionId": regionId, "status": 12, "groupList": group_list}
         ans, json = await generation_logic.get_ans(data)
-        judges = []
-        for i in json:
-            judges += json[i]['judge_id']
+        id_to_group = await generation_logic.unpac_json(json)
+        judges = await generation_logic.get_judges_list(json)
+        #ans[i] = [key, 'l', json[key]['lin_id']]
 
-        generation_results[message.from_user.id] = [ans, json, judges, active_comp]
-        chairmans_groups_lists[message.from_user.id] = [active_comp, group_list, json, '']
+        generation_results[message.from_user.id] = {'ans': ans, 'json': json, 'compId': active_comp, 'id_to_group': id_to_group, 'judges': judges}
+        chairmans_groups_lists[message.from_user.id] = {'compId': active_comp, 'json': json, 'name': ''}
+
         markup = await chairmans_kb.get_generation_kb(active_comp)
         if markup == -1:
             return message.answer('❌Ошибка')
@@ -431,18 +433,21 @@ async def handle_text_message(message: types.Message):
 @router.callback_query(F.data == 'regenerate_list')
 async def f4(callback: types.CallbackQuery):
     try:
-        active_comp, group_list, prev_ans, name = chairmans_groups_lists[callback.from_user.id]
+        active_comp = chairmans_groups_lists[callback.from_user.id]['compId']
+        group_list = chairmans_groups_lists[callback.from_user.id]['json'].keys()
+
         if active_comp is None:
             return await callback.answer('❌Ошибка. Необходимо задать активный турнир')
 
         data = {'compId': active_comp, "regionId": 78, "status": 12, "groupList": group_list}
         ans, json = await generation_logic.get_ans(data)
-        judges = []
-        for i in json:
-            judges += json[i]['judge_id']
-        generation_results[callback.from_user.id] = [ans, json, judges, active_comp]
+        id_to_group = await generation_logic.unpac_json(json)
+        judges = await generation_logic.get_judges_list(json)
 
-        chairmans_groups_lists[callback.from_user.id] = [active_comp, group_list, json, '']
+        generation_results[callback.from_user.id] = {'ans': ans, 'json': json, 'compId': active_comp, 'id_to_group': id_to_group, 'judges': judges}
+        chairmans_groups_lists[callback.from_user.id] = {'compId': active_comp, 'json': json, 'name': '', 'groupNumber': -1}
+
+
         markup = await chairmans_kb.get_generation_kb(active_comp)
         if markup == -1:
             return callback.message.answer('❌Ошибка')
@@ -461,6 +466,7 @@ async def f4(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == 'send_generate_rsk')
 async def f4(callback: types.CallbackQuery):
+    print(list(generation_results[callback.from_user.id]['judges'].keys()  ))
     scrutineer_id = await chairman_queries.get_Scrutineer(callback.from_user.id)
     if scrutineer_id == 0:
         await callback.message.answer('❌Ошибка')
@@ -483,7 +489,7 @@ async def f4(callback: types.CallbackQuery):
                     await callback.message.bot.send_message(scrutineer_id, f"Сообщение от пользователя {name}")
                     await callback.message.bot.send_message(scrutineer_id, callback.message.text)
                     await callback.message.delete_reply_markup()
-                    await chairman_queries.set_group_counter(generation_results[callback.from_user.id][2], generation_results[callback.from_user.id][3])
+                    await chairman_queries.set_group_counter(generation_results[callback.from_user.id]['judges'], generation_results[callback.from_user.id]['compId'])
                     await callback.message.answer('✅Информация отправлена РСК')
                 else:
                     await callback.message.answer('❌Ошибка. Пожалуйста отправьте список еще раз')
@@ -497,7 +503,7 @@ async def f4(callback: types.CallbackQuery):
 @router.callback_query(F.data == 'save_result')
 async def f4(callback: types.CallbackQuery):
     await callback.message.delete_reply_markup()
-    await chairman_queries.set_group_counter(generation_results[callback.from_user.id][2], generation_results[callback.from_user.id][3])
+    await chairman_queries.set_group_counter(generation_results[callback.from_user.id]['judges'], generation_results[callback.from_user.id]['compId'])
     await callback.message.answer('Результат сохранен')
 
 
@@ -511,14 +517,17 @@ async def f4(callback: types.CallbackQuery):
 async def f4(callback: types.CallbackQuery):
     compid = await general_queries.get_CompId(callback.from_user.id)
     markup = await chairmans_kb.get_generation_kb(compid)
-    text = generation_results[callback.from_user.id][0]
+    text = generation_results[callback.from_user.id]['ans']
     await callback.message.edit_text(text=text, reply_markup=markup)
 
 
 @router.callback_query(F.data.startswith('gen_choise_jud_01_'))
 async def cmd_start(call: types.CallbackQuery):
-    judgeid = call.data.replace('gen_choise_jud_01_', '')
-    n = await chairman_queries.ids_to_names([judgeid], generation_results[call.from_user.id][3])
+    judgeType, group, judgeId = call.data.replace('gen_choise_jud_01_', '').split('_')
+    groupType = await chairman_queries.get_group_type(generation_results[call.from_user.id]['compId'], int(group))
+    chairmans_groups_lists[call.from_user.id]['groupNumber'] = group
+
+    n = await chairman_queries.ids_to_names([judgeId], generation_results[call.from_user.id]['compId'])
     i = n.split()
     if len(i) == 2:
         lastname, firstname = i
@@ -526,15 +535,21 @@ async def cmd_start(call: types.CallbackQuery):
         lastname = i[0]
         firstname = ' '.join(i[1::])
 
-    chairmans_groups_lists[call.from_user.id][3] = [lastname + ' ' + firstname, judgeid]
-    markup = await chairmans_kb.edit_gen_judegs_markup(generation_results[call.from_user.id])
-    await call.message.edit_text('👨‍⚖️' + lastname + ' ' + firstname + "\n" + "\n" + "Выберите судью для замены:", reply_markup=markup)
+    chairmans_groups_lists[call.from_user.id]['name'] = [lastname + ' ' + firstname, judgeId]
+    judges = generation_results[call.from_user.id]['judges']
+    compId = generation_results[call.from_user.id]['compId']
+    json = generation_results[call.from_user.id]['json']
+
+
+    markup = await chairmans_kb.edit_gen_judegs_markup(groupType, int(judgeId), judges, compId, json)
+    await call.message.edit_text('👨‍⚖️' + lastname + ' ' + firstname + "\n" + "\n" + "Выберите судью для замены:",
+                                 reply_markup=markup)
 
 
 @router.callback_query(F.data.startswith('gen_choise_jud_02_'))
 async def cmd_start(call: types.CallbackQuery):
     judgeid = call.data.replace('gen_choise_jud_02_', '')
-    n = await chairman_queries.ids_to_names([judgeid], generation_results[call.from_user.id][3])
+    n = await chairman_queries.ids_to_names([judgeid], generation_results[call.from_user.id]['compId'])
     i = n.split()
 
     if len(i) == 2:
@@ -543,16 +558,53 @@ async def cmd_start(call: types.CallbackQuery):
         lastname = i[0]
         firstname = ' '.join(i[1::])
 
-    text = generation_results[call.from_user.id][0].replace(chairmans_groups_lists[call.from_user.id][3][0], lastname + ' ' + firstname)
-    generation_results[call.from_user.id][0] = text
+    text = generation_results[call.from_user.id]['ans'].replace(chairmans_groups_lists[call.from_user.id]['name'][0], lastname + ' ' + firstname)
+    generation_results[call.from_user.id]['ans'] = text
+
+    #json = generation_results[call.from_user.id]['json']
+    #groupNumber = chairmans_groups_lists[call.from_user.id]['groupNumber']
+    #group = json[int(groupNumber)]
 
 
-    for i in range(len(generation_results[call.from_user.id][2])):
-        if generation_results[call.from_user.id][2][i] == int(chairmans_groups_lists[call.from_user.id][3][1]):
-            generation_results[call.from_user.id][2][i] = int(judgeid)
+    oldId = int(chairmans_groups_lists[call.from_user.id]['name'][1])
+    oldJud = generation_results[call.from_user.id]['judges'][oldId]
+    newId = int(judgeid)
+
+    generation_results[call.from_user.id]['judges'][newId] = oldJud
+
+    generation_results[call.from_user.id]['judges'][newId][2].remove(oldId)
+    generation_results[call.from_user.id]['judges'][newId][2].append(newId)
+    del generation_results[call.from_user.id]['judges'][oldId]
+
+    '''
+    for i in range(len(group['lin_id'])):
+        if group['lin_id'][i] == int(chairmans_groups_lists[call.from_user.id]['name'][1]):
+            generation_results[call.from_user.id]['json'][int(groupNumber)]['lin_id'][i] = int(judgeid)
+            generation_results[call.from_user.id]['id_to_group'][int(judgeid)] = int(groupNumber)
+
+            generation_results[call.from_user.id]['judges'].remove(int(chairmans_groups_lists[call.from_user.id]['name'][1]))
+            generation_results[call.from_user.id]['judges'].append(int(judgeid))
             break
+    else:
+        for i in range(len(group['zgs_id'])):
+            if group['zgs_id'][i] == int(chairmans_groups_lists[call.from_user.id]['name'][1]):
+                generation_results[call.from_user.id]['json'][int(groupNumber)]['zgs_id'][i] = int(judgeid)
+                generation_results[call.from_user.id]['id_to_group'][int(judgeid)] = int(groupNumber)
 
-    compid = generation_results[call.from_user.id][3]
+                generation_results[call.from_user.id]['judges'].remove(int(chairmans_groups_lists[call.from_user.id]['name'][1]))
+                generation_results[call.from_user.id]['judges'].append(int(judgeid))
+                break
+    '''
+
+    '''
+    for i in range(len(generation_results[call.from_user.id]['judges'])):
+        if generation_results[call.from_user.id]['judges'][i] == int(chairmans_groups_lists[call.from_user.id]['name'][1]):
+            generation_results[call.from_user.id]['judges'][i] = int(judgeid)
+            break
+    '''
+
+
+    compid = generation_results[call.from_user.id]['compId']
     markup = await chairmans_kb.get_generation_kb(compid)
 
 

@@ -3,6 +3,7 @@ import asyncio
 from queries import chairman_queries
 import pymysql
 import config
+from chairman_moves import generation_logic
 
 async def gen_list_comp(tg_id):
     list_comp_buttons = []
@@ -129,8 +130,9 @@ async def get_generation_kb(active_comp):
 
 async def get_gen_edit_markup(json):
     try:
-        judges = json[2]
-        compid = json[3]
+        judges = json['judges']
+        compid = json['compId']
+        id_to_group = json['id_to_group']
         buttons = []
         but2 = []
 
@@ -144,13 +146,16 @@ async def get_gen_edit_markup(json):
         )
         with conn:
             cur = conn.cursor()
-            for i in range(len(judges)):
-                cur.execute(f"SELECT firstName, lastName FROM competition_judges WHERE compId = {compid} and id = {judges[i]}")
+            for i in judges:
+                cur.execute(f"SELECT firstName, lastName FROM competition_judges WHERE compId = {compid} and id = {i}")
                 ans = cur.fetchone()
-                but2.append(InlineKeyboardButton(text=ans['lastName'] + ' ' + ans['firstName'], callback_data=f"gen_choise_jud_01_{judges[i]}"))
-                if i % 2 != 0:
+                group = judges[i][0]
+                but2.append(InlineKeyboardButton(text=ans['lastName'] + ' ' + ans['firstName'], callback_data=f"gen_choise_jud_01_{judges[i][1]}_{group}_{i}"))
+                if len(but2) == 2:
                     buttons.append(but2)
                     but2 = []
+
+
 
         if len(but2) == 0:
             b = [InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation")]
@@ -164,13 +169,10 @@ async def get_gen_edit_markup(json):
         print(e)
 
 
-async def edit_gen_judegs_markup(json):
+async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
     try:
-        compid = json[3]
-        judges = json[2]
         buttons = []
         but2 = []
-
         conn = pymysql.connect(
             host=config.host,
             port=3306,
@@ -179,20 +181,31 @@ async def edit_gen_judegs_markup(json):
             database=config.db_name,
             cursorclass=pymysql.cursors.DictCursor
         )
+
         with conn:
             cur = conn.cursor()
-
-            cur.execute(f"SELECT firstName, lastName, id from competition_judges WHERE compId = {compid} and active = 1")
+            cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1")
             all_judges = cur.fetchall()
-            all_judges_01 = all_judges.copy()
-            for i in range(len(judges)):
-                for j in all_judges:
-                    if j['id'] == judges[i]:
-                        all_judges_01.remove(j)
 
-            for j in range(len(all_judges_01)):
-                but2.append(InlineKeyboardButton(text=f'{all_judges_01[j]["lastName"]} {all_judges_01[j]["firstName"]}',
-                                                 callback_data=f'gen_choise_jud_02_{all_judges_01[j]["id"]}'))
+
+            all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
+
+            if groupType == 1:
+                minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
+                all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId)
+
+
+            if judges[judgeId][1] == 'l':
+                lin_neibors_list = judges[judgeId][2].copy()
+                lin_neibors_list.remove(judgeId)
+                lin_neibors_clubs_list = await chairman_queries.get_lin_neibors_clubs(lin_neibors_list)
+                all_judges = await generation_logic.distinct_clubs_filter(lin_neibors_clubs_list, all_judges)
+
+
+
+            for j in range(len(all_judges)):
+                but2.append(InlineKeyboardButton(text=f'{all_judges[j]["lastName"]} {all_judges[j]["firstName"]}',
+                                                 callback_data=f'gen_choise_jud_02_{all_judges[j]["id"]}'))
                 if j % 2 != 0:
                     buttons.append(but2)
                     but2 = []

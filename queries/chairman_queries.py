@@ -1322,7 +1322,6 @@ async def set_real_cetegory(user_id, lastname, firstname, name, code):
         return 0
 
 
-
 async def change_generation_mode(user_id):
     try:
         active_comp = await general_queries.get_CompId(user_id)
@@ -1370,4 +1369,71 @@ async def get_generation_mode(active_comp):
             return mode
     except Exception as e:
         print(e)
+        return -1
+
+
+async def get_group_type(compId, groupNumber):
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"SELECT sport from competition_group where compId = {compId} and groupNumber = {groupNumber}")
+            mode = cur.fetchone()
+            mode = mode['sport']
+            return mode
+    except Exception as e:
+        print(e)
+        return -1
+
+
+async def get_lin_neibors_clubs(a):
+    try:
+        clubs_list = set()
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            for i in range(len(a)):
+                cur.execute(f'select City, Club from competition_judges where id = {a[i]}')
+                req = cur.fetchone()
+                if req['City'] is not None and req['Club'] is not None:
+                    clubs_list.add(f"{req['City']}, {req['Club']}")
+
+            return clubs_list
+    except Exception as e:
+        return -1
+
+
+async def get_min_catId(compId, groupNumber):
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"select minCategoryId from competition_group where compId = {compId} and groupNumber = {groupNumber}")
+            ans = cur.fetchone()
+            if ans['minCategoryId'] is None:
+                return 0
+            else:
+                return ans['minCategoryId']
+    except Exception as e:
         return -1
