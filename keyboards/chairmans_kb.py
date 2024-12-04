@@ -147,7 +147,7 @@ async def get_gen_edit_markup(json):
         with conn:
             cur = conn.cursor()
             for i in judges:
-                cur.execute(f"SELECT firstName, lastName FROM competition_judges WHERE compId = {compid} and id = {i}")
+                cur.execute(f"SELECT firstName, lastName FROM competition_judges WHERE compId = {compid} and id = {i} and workCode <> 3")
                 ans = cur.fetchone()
                 group = judges[i][0]
                 but2.append(InlineKeyboardButton(text=ans['lastName'] + ' ' + ans['firstName'], callback_data=f"gen_choise_jud_01_{judges[i][1]}_{group}_{i}"))

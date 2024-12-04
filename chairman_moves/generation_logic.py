@@ -60,22 +60,27 @@ async def get_ans(data):
 
 
     #ГЕНЕРАЦИЯ ЗГС
+
     all_groups_finish_jud = []
+    sucess_result_zgs = 0
     sucess_result = 0
+    final_status = 0
+
     for i in group_list:
         group_number = i[0]
         json_end = dict()
-        if sucess_result == 1:
+        if final_status == 1:
             group_all_judges_list = all_judges_list.copy()
             for j in group_finish_judges_list:
                 all_groups_finish_jud.append(j)
             for x in zgs_end_list:
-                all_groups_finish_jud.append(j)
+                all_groups_finish_jud.append(x)
+                zgs_list_generation.pop(x, None)
             for jj in all_groups_finish_jud:
                 group_all_judges_list.pop(jj, None)
             group_finish_judges_list = []
+            zgs_end_list = []
             regions = {}
-            sucess_result = 0
         else:
             group_all_judges_list = all_judges_list.copy()  # общий список судей из которого будем случайно выбирать
             group_finish_judges_list = []  # список, в котором финально будем передавать судей, оценивающих категорию
@@ -83,7 +88,8 @@ async def get_ans(data):
             zgs_end_list = []  # список згс которых набрали
             zgs_list_generation = all_zgs_list.copy()  # динамический список для генерации
 
-        zgs_number_to_have = i[4] #сколко нужно набратғ ЗГС в группу
+        zgs_number_to_have = int(i[4]) #сколко нужно набратғ ЗГС в группу
+
         if len(zgs_list_generation) >= zgs_number_to_have:
             while len(zgs_end_list) < zgs_number_to_have:
                 if len(zgs_list_generation) > 0:
@@ -93,7 +99,7 @@ async def get_ans(data):
                     zgs_list_generation = await delete_club_from_judges(zgs_list_generation, zgs_random_choice['Club'])
 
                 else:
-                    sucess_result = 0
+                    sucess_result_zgs = 0
                     json_end['group_number'] = group_number
                     json_end['status'] = "fail"
                     json_end['judge_id'] = []
@@ -102,6 +108,7 @@ async def get_ans(data):
                     break
             else:
                 json_end['group_number'] = group_number
+                if len(zgs_end_list) == zgs_number_to_have: sucess_result_zgs = 1
                 json_end['status'] = "success"
                 json_end['judge_id'] = list()
                 json_end['zgs_id'] = list()
@@ -110,13 +117,17 @@ async def get_ans(data):
                     json_end['zgs_id'].append(all_zgs_list[d]['id'])
 
         else:
-            sucess_result = 0
-            json_end['group_number'] = group_number
-            json_end['status'] = "fail"
-            json_end['judge_id'] = []
-            json_end['zgs_id'] = []
-            json_end[
-                'msg'] = 'Не удалось сформировать бригаду с учетом заданных условий. Попробуйте уменьшить количество ЗГС'
+            #if zgs_number_to_have == 0:
+             #   sucess_result_zgs = 1
+              #  json_end['zgs_id'] = []
+               # json_end['judge_id'] = []
+            #else:
+                sucess_result_zgs = 0
+                json_end['group_number'] = group_number
+                json_end['status'] = "fail"
+                json_end['judge_id'] = []
+                json_end['zgs_id'] = []
+                json_end['msg'] = 'Не удалось сформировать бригаду с учетом заданных условий. Попробуйте уменьшить количество ЗГС'
 
     # 3. начинаем работать с каждой группой из переданного списка
 
@@ -138,8 +149,11 @@ async def get_ans(data):
         if i[3] == 0: # если группа не спортивная, проверяем регионы
             n_jud_comp_region, n_jud_other_region = await rc_a_region_rules(comp_region_id, n_judges)
         else:
-            n_jud_comp_region, n_jud_other_region = 10000, 10000
-            group_all_judges_list = await judges_category_date_filter(group_all_judges_list, data['compId'])
+            if i[3] == 1: #если группа спортивная, то ограничения на регионы нет, но надо проверить категории
+                n_jud_comp_region, n_jud_other_region = 10000, 10000
+                group_all_judges_list = await judges_category_date_filter(group_all_judges_list, data['compId'])
+            else: #для РС В вообще пофиг
+                n_jud_comp_region, n_jud_other_region = 10000, 10000
 
         group_all_judges_list = await judges_category_filter(group_all_judges_list,
                                                        min_category)  # 4. удаляем судей с неподходящей категорией
@@ -215,7 +229,12 @@ async def get_ans(data):
             json_end['judge_id'] = []
             json_end['msg'] = 'Не удалось сформировать бригаду с учетом заданных условий. Попробуйте сгенерирвать еще раз или уменьшить количество судей в бригаде'
 
+        final_status = sucess_result
+        if final_status > sucess_result_zgs: final_status = sucess_result_zgs
+        result_dict = {0: "fail", 1: "success"}
+        json_end['status'] = result_dict[final_status]
         json_export[group_number] = json_end
+
 
     #json.loads(json.dumps(json_export))
     ans = await json_to_message(json_export, data)
@@ -360,7 +379,7 @@ async def get_all_judges_yana(compId):
         with conn:
             cur = conn.cursor()
             cur.execute(
-               f"SELECT id, lastName, firstName, SPORT_Category, RegionId, Club, bookNumber, group_counter, DSFARR_Category_Id, workCode FROM competition_judges WHERE compId = {compId} and active = 1")  # выбираем только активных на данный момент судей
+               f"SELECT id, lastName, firstName, SPORT_Category, RegionId, Club, bookNumber, group_counter, DSFARR_Category_Id, workCode FROM competition_judges WHERE compId = {compId} and active = 1 and workCode <= 1")  # выбираем только активных на данный момент судей
             data = cur.fetchall()
             return data
 
@@ -506,13 +525,19 @@ async def ids_to_names(judges, active_comp):
 
 async def json_to_message(json_export, data):
     r = []
-
+    print(data)
+    print(json_export)
     for key in json_export:
         group_name = await get_group_name(data['compId'], key)
         if json_export[key]['status'] == 'success':
             peoples = await ids_to_names(json_export[key]['lin_id'], data['compId'])
             zgs = await ids_to_names(json_export[key]['zgs_id'], data['compId'])
             text = f'{key}. {group_name}\nЗгс. {zgs}.\nЛинейные судьи: {peoples}.'
+            if len(zgs) == 0:
+                text = f'{key}. {group_name}\nЛинейные судьи: {peoples}.'
+            else:
+                text = f'{key}. {group_name}\nЗгс. {zgs}.\nЛинейные судьи: {peoples}.'
+
             r.append(text)
 
         if json_export[key]['status'] == 'fail':
