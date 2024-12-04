@@ -525,8 +525,6 @@ async def ids_to_names(judges, active_comp):
 
 async def json_to_message(json_export, data):
     r = []
-    print(data)
-    print(json_export)
     for key in json_export:
         group_name = await get_group_name(data['compId'], key)
         if json_export[key]['status'] == 'success':
@@ -760,3 +758,38 @@ async def category_filter(all_judges, minCategoryId, compId):
         return all_judges_01
     except Exception as e:
         return -1
+
+
+
+async def generate_zgs(compId, n):
+    try:
+        names = []
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"select firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges where compId = {compId} and active = 1")
+            judges_all = cur.fetchall()
+            if len(judges_all) < n:
+                return {'msg': "Значение введеного параметра превышает количесво активных судей", 'judges': [], 'status': 'fail'}
+
+            i = 0
+            while i != n:
+                jud = judges_all.pop(random.randint(0, len(judges_all)))
+                names.append(jud)
+                i += 1
+            text = await generate_zgs_to_message(names)
+            json_export = {'msg': text, 'status': 'succsess', 'judges': names}
+        return json_export
+    except:
+        pass
+
+async def generate_zgs_to_message(names):
+    text = f'Згс. {", ".join([i["lastName"] + " " + i["firstName"] for i in names])}'
+    return

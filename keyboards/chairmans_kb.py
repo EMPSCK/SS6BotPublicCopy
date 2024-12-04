@@ -147,7 +147,7 @@ async def get_gen_edit_markup(json):
         with conn:
             cur = conn.cursor()
             for i in judges:
-                cur.execute(f"SELECT firstName, lastName FROM competition_judges WHERE compId = {compid} and id = {i} and workCode <> 3")
+                cur.execute(f"SELECT firstName, lastName FROM competition_judges WHERE compId = {compid} and id = {i}")
                 ans = cur.fetchone()
                 group = judges[i][0]
                 but2.append(InlineKeyboardButton(text=ans['lastName'] + ' ' + ans['firstName'], callback_data=f"gen_choise_jud_01_{judges[i][1]}_{group}_{i}"))
@@ -184,22 +184,32 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
 
         with conn:
             cur = conn.cursor()
-            cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1")
-            all_judges = cur.fetchall()
-
-
-            all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
-
-            if groupType == 1:
-                minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
-                all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId)
-
-
             if judges[judgeId][1] == 'l':
+                cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 0")
+                all_judges = cur.fetchall()
+
+                all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
+
+                if groupType == 1:
+                    minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
+                    all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId)
+
+
                 lin_neibors_list = judges[judgeId][2].copy()
                 lin_neibors_list.remove(judgeId)
                 lin_neibors_clubs_list = await chairman_queries.get_lin_neibors_clubs(lin_neibors_list)
                 all_judges = await generation_logic.distinct_clubs_filter(lin_neibors_clubs_list, all_judges)
+
+
+            if judges[judgeId][1] == 'z':
+                cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 1")
+                all_judges = cur.fetchall()
+
+                all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
+
+                if groupType == 1:
+                    minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
+                    all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId)
 
 
 
@@ -221,4 +231,3 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
 
     except Exception as e:
         print(e)
-

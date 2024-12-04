@@ -1184,6 +1184,7 @@ async def set_group_counter(data, compId):
         database=config.db_name,
         cursorclass=pymysql.cursors.DictCursor
     )
+    #print(data, "Проставляем счетчики")
     with conn:
         cur = conn.cursor()
         for judge_id in data:

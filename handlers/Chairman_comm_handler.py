@@ -416,6 +416,7 @@ async def handle_text_message(message: types.Message):
 
         id_to_group = await generation_logic.unpac_json(json)
         judges = await generation_logic.get_judges_list(json)
+        #print(judges, "Генерация")
         #ans[i] = [key, 'l', json[key]['lin_id']]
 
         generation_results[message.from_user.id] = {'ans': ans, 'json': json, 'compId': active_comp, 'id_to_group': id_to_group, 'judges': judges}
@@ -543,7 +544,6 @@ async def cmd_start(call: types.CallbackQuery):
     compId = generation_results[call.from_user.id]['compId']
     json = generation_results[call.from_user.id]['json']
 
-
     markup = await chairmans_kb.edit_gen_judegs_markup(groupType, int(judgeId), judges, compId, json)
     await call.message.edit_text('👨‍⚖️' + lastname + ' ' + firstname + "\n" + "\n" + "Выберите судью для замены:",
                                  reply_markup=markup)
@@ -578,7 +578,6 @@ async def cmd_start(call: types.CallbackQuery):
     #print(generation_results[call.from_user.id]['judges'])
     compid = generation_results[call.from_user.id]['compId']
     markup = await chairmans_kb.get_generation_kb(compid)
-
 
     await call.message.edit_text(text=text, reply_markup=markup)
 
