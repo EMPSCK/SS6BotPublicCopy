@@ -72,3 +72,39 @@ async def set_active_0(user_id):
         return 1
     except:
         return 0
+
+async def check_chairman_pin(tg_id, pin, mode):
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"select PinCode, compId from competition where isActive = 1")
+            ans = cur.fetchall()
+            status, compid = 0, -1
+            for comp in ans:
+                if comp['PinCode'] == pin:
+                    status, compid = 1, comp['compId']
+                    break
+
+            if status == 1:
+                if mode == 0:
+                    sql = "INSERT INTO skatebotusers (`tg_id`, `Id_active_comp`, `status`, `active`) VALUES (%s, %s, %s, %s)"
+                    cur.execute(sql, (tg_id, compid, 3, 1))
+                    conn.commit()
+
+                cur.execute(f"update competition set chairman_Id = {tg_id} where compId = {compid}")
+                conn.commit()
+                if mode == 1:
+                    cur.execute(f"update skatebotusers set Id_active_comp = {compid} where tg_id = {tg_id}")
+                    conn.commit()
+                return 1
+        return 0
+    except Exception as e:
+        return -1

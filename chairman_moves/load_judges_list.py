@@ -52,6 +52,7 @@ async def load_list(tg_id, text, compid, code):
                     judges_promlem.append([last_name, name, 'Не обнаружена запись в бд', 2])
                     names.append(last_name+ ' ' +name)
                     continue
+
                 elif len(person) > 1:
                     # Проверяем есть ли запись в competition_judges
 

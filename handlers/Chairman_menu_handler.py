@@ -10,6 +10,8 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from chairman_moves import load_judges_list
+from queries import scrutineer_queries
+
 import config
 router = Router()
 problemjudgesset = {}
@@ -19,6 +21,7 @@ confirm_tour_id = {}
 last_added_judges = {}
 judges_codes = {}
 generation_results = {}
+old_enter_pin_m = {}
 
 class Load_list_judges(StatesGroup):
     next_step = State()
@@ -423,16 +426,80 @@ async def cmd_start(message: Message, state: FSMContext):
         else:
             await message.answer("❌Ошибка")
 
+class Enter_chairman_pin(StatesGroup):
+    firstState = State()
+
+@router.callback_query(F.data == 'enter_pin_on_menu')
+async def cmd_start(call: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    old_enter_pin_m[call.from_user.id] = call.message
+    await call.message.edit_text('Введите код: ', reply_markup=chairmans_kb.back_kb)
+    await state.set_state(Enter_chairman_pin.firstState)
 
 
+@router.message(Enter_chairman_pin.firstState)
+async def f2(message: Message, state: FSMContext):
+    oldmessage = old_enter_pin_m[message.from_user.id]
+    try:
+        pin = message.text
+        if pin.isdigit():
+            status = await scrutineer_queries.check_chairman_pin(message.from_user.id, int(pin), 1)
+            if status == -1:
+                await message.delete()
+                await oldmessage.edit_text('❌Ошибка', reply_markup=chairmans_kb.back_kb)
+                await state.clear()
+
+
+            if status == 1:
+                text, userstatus = await get_mes_menu(message)
+                await message.delete()
+                if userstatus == 3:
+                    await oldmessage.edit_text(text, reply_markup=chairmans_kb.menu_kb)
+                    await state.clear()
+
+            if status == 0:
+                await message.delete()
+                await oldmessage.edit_text('❌Ошибка. Пинкод не найден.', reply_markup=chairmans_kb.back_kb)
+                await state.clear()
+
+            await state.clear()
+        else:
+            await message.delete()
+            await oldmessage.edit_text('❌Ошибка. Неправильный формат пинкода.', reply_markup=chairmans_kb.back_kb)
+    except:
+        await oldmessage.edit_text('❌Ошибка', reply_markup=chairmans_kb.back_kb)
+
+
+async def get_mes_menu(message: Message):
+    user_status = await get_user_status_query.get_user_status(message.from_user.id)
+    #Админ
+    if user_status == 1:
+        return '👋Добро пожаловать в admin интерфейс бота SS6', user_status
+
+    #scrutinner
+    if user_status == 2:
+        active_comp = await general_queries.get_CompId(message.from_user.id)
+        if await chairman_queries.del_unactive_comp(message.from_user.id, active_comp) == 1:
+            active_comp = None
+        info = await general_queries.CompId_to_name(active_comp)
+        return f"👋Добро пожаловать в scrutineer интерфейс бота SS6\n\n/help - список всех команд\nАктивное соревнование: {info}", user_status
+    #chairman
+    if user_status == 3:
+        active_comp = await general_queries.get_CompId(message.from_user.id)
+        if await chairman_queries.del_unactive_comp(message.from_user.id, active_comp) == 1:
+            active_comp = None
+        info = await general_queries.CompId_to_name(active_comp)
+        return f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/judges - отправить список судей\n/help - список всех команд\nАктивное соревнование: {info}", 3
+    if user_status == 0:
+        return "👋Добро пожаловать в интерфейс бота SS6\n\nДля начала работы необходимо пройти регистрацию в системе\nВыберите роль:", 0
+
+'''
 class Gen_zgs_states(StatesGroup):
     firstState = State()
 
-'''
 @router.message(Command("gen_zgs"))
 async def cmd_start(message: Message, state: FSMContext):
     await state.set_state(Gen_zgs_states.firstState)
-
 
 @router.message(Gen_zgs_states.firstState)
 async def f2(message: Message, state: FSMContext):

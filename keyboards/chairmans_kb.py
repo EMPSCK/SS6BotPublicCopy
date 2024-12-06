@@ -50,7 +50,10 @@ book_number_kb = InlineKeyboardMarkup(inline_keyboard=[book_number_button])
 
 
 menu_button = [InlineKeyboardButton(text='Задать активное соревнование', callback_data='set_active_competition')]
-menu_kb = InlineKeyboardMarkup(inline_keyboard=[menu_button])
+menu_button_01 = [InlineKeyboardButton(text='Ввести код', callback_data='enter_pin_on_menu')]
+menu_kb = InlineKeyboardMarkup(inline_keyboard=[menu_button, menu_button_01])
+
+back_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Вернуться к меню', callback_data='back_to_chairman_menu')]])
 
 list_jud_send_b1 = [InlineKeyboardButton(text='Подтвердить отправку', callback_data='send_list_anyway')]
 list_jud_send_b2 = [InlineKeyboardButton(text='показать свободных судей', callback_data='show_free_judges')]
@@ -254,3 +257,5 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
 
     except Exception as e:
         print(e)
+
+

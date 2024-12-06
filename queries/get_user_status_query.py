@@ -19,5 +19,4 @@ async def get_user_status(tg_id):
             cur.close()
             return status['status']
     except:
-        print('Ошибка выполнения запроса на поиск статуса')
         return 0

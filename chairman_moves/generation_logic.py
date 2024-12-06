@@ -59,6 +59,7 @@ async def get_ans(data):
     all_zgs_list = await judges_zgs_filter(all_judges_list)  # доступные згс из базы
 
 
+
     #ГЕНЕРАЦИЯ ЗГС
 
     all_groups_finish_jud = []
@@ -69,6 +70,7 @@ async def get_ans(data):
     for i in group_list:
         group_number = i[0]
         json_end = dict()
+
         if final_status == 1:
             group_all_judges_list = all_judges_list.copy()
             for j in group_finish_judges_list:
@@ -90,12 +92,23 @@ async def get_ans(data):
 
         zgs_number_to_have = int(i[4]) #сколко нужно набратғ ЗГС в группу
 
+        black_list_cat = await black_list_convert(group_number,
+                                                  black_list)  # 5. определяем судей с запретом на судейство в конкретной категории
+        zgs_list_generation = await judges_black_list_filter(zgs_list_generation,
+                                                      black_list_cat)  # 6. удаляем таких судей из категории
+
+
+
         if len(zgs_list_generation) >= zgs_number_to_have:
             while len(zgs_end_list) < zgs_number_to_have:
                 if len(zgs_list_generation) > 0:
-
                     zgs_random_choice = await get_random_judge(zgs_list_generation)
                     zgs_end_list.append(zgs_random_choice['id'])
+
+                    if zgs_random_choice['id'] in relatives_dict:
+                        for l in relatives_dict[zgs_random_choice['id']]:
+                            zgs_list_generation.pop(l, None)
+
                     zgs_list_generation = await delete_club_from_judges(zgs_list_generation, zgs_random_choice['Club'])
 
                 else:
@@ -164,6 +177,8 @@ async def get_ans(data):
                                                          black_list_cat)  # 6. удаляем таких судей из категории
 
 
+
+        #Удаляем из пула згс ребят
         group_all_judges_list = await judges_black_list_filter(group_all_judges_list,
                                                        zgs_end_list)
 
