@@ -761,6 +761,60 @@ async def category_filter(all_judges, minCategoryId, compId):
 
 
 
+async def interdiction_filter(compId, groupNumber, all_judges):
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"select judgeId from competition_group_interdiction where compId = {compId} and groupNumber = {groupNumber}")
+            interdiction_list = cur.fetchall()
+            interdiction_list = set([i['judgeId'] for i in interdiction_list])
+            all_judges_01 = all_judges.copy()
+
+            for jud in all_judges:
+                if jud['id'] in interdiction_list:
+                    all_judges_01.remove(jud)
+        return all_judges_01
+    except:
+        return 0
+
+
+async def relatives_filter(compId, all_judges, pull):
+    try:
+        all_judges_01 = all_judges.copy()
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"select firstId, secondId from judges_relatives where compId = {compId}")
+            relatives = cur.fetchall()
+            relatives_list = []
+            for rel in relatives:
+                if rel['firstId'] in pull:
+                    relatives_list.append(rel['secondId'])
+            for jud in all_judges:
+                if jud['id'] in relatives_list:
+                    all_judges_01.remove(jud)
+
+        return all_judges_01
+    except Exception as e:
+        print(e)
+        return 0
+
+
 async def generate_zgs(compId, n):
     try:
         names = []

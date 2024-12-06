@@ -132,7 +132,6 @@ async def get_gen_edit_markup(json):
     try:
         judges = json['judges']
         compid = json['compId']
-        id_to_group = json['id_to_group']
         buttons = []
         but2 = []
 
@@ -149,6 +148,8 @@ async def get_gen_edit_markup(json):
             for i in judges:
                 cur.execute(f"SELECT firstName, lastName FROM competition_judges WHERE compId = {compid} and id = {i}")
                 ans = cur.fetchone()
+
+
                 group = judges[i][0]
                 but2.append(InlineKeyboardButton(text=ans['lastName'] + ' ' + ans['firstName'], callback_data=f"gen_choise_jud_01_{judges[i][1]}_{group}_{i}"))
                 if len(but2) == 2:
@@ -187,8 +188,16 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
             if judges[judgeId][1] == 'l':
                 cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 0")
                 all_judges = cur.fetchall()
+                if len(all_judges) == 0:
+                    but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation"))
+                    buttons.append(but2)
+                    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
                 all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
+                all_judges = await generation_logic.interdiction_filter(compId, judges[judgeId][0], all_judges)
+                pull = json[judges[judgeId][0]]['lin_id'] + json[judges[judgeId][0]]['zgs_id']
+                pull.remove(judgeId)
+                all_judges = await generation_logic.relatives_filter(compId, all_judges, pull)
 
                 if groupType == 1:
                     minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
@@ -199,18 +208,32 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
                 lin_neibors_list.remove(judgeId)
                 lin_neibors_clubs_list = await chairman_queries.get_lin_neibors_clubs(lin_neibors_list)
                 all_judges = await generation_logic.distinct_clubs_filter(lin_neibors_clubs_list, all_judges)
+                all_judges = await generation_logic.interdiction_filter(compId, judges[judgeId][0], all_judges)
 
 
             if judges[judgeId][1] == 'z':
                 cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 1")
                 all_judges = cur.fetchall()
+                if len(all_judges) == 0:
+                    but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation"))
+                    buttons.append(but2)
+                    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
                 all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
+                all_judges = await generation_logic.interdiction_filter(compId, judges[judgeId][0], all_judges)
+                zgs_neibors_list = judges[judgeId][2].copy()
+                zgs_neibors_list.remove(judgeId)
+                zgs_neibors_clubs_list = await chairman_queries.get_lin_neibors_clubs(zgs_neibors_list)
+
+                all_judges = await generation_logic.distinct_clubs_filter(zgs_neibors_clubs_list, all_judges)
 
                 if groupType == 1:
                     minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
                     all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId)
 
+                pull = json[judges[judgeId][0]]['lin_id'] + json[judges[judgeId][0]]['zgs_id']
+                pull.remove(judgeId)
+                all_judges = await generation_logic.relatives_filter(compId, all_judges, pull)
 
 
             for j in range(len(all_judges)):

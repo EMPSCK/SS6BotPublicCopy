@@ -424,9 +424,11 @@ async def cmd_start(message: Message, state: FSMContext):
             await message.answer("❌Ошибка")
 
 
+
 class Gen_zgs_states(StatesGroup):
     firstState = State()
 
+'''
 @router.message(Command("gen_zgs"))
 async def cmd_start(message: Message, state: FSMContext):
     await state.set_state(Gen_zgs_states.firstState)
@@ -435,3 +437,5 @@ async def cmd_start(message: Message, state: FSMContext):
 @router.message(Gen_zgs_states.firstState)
 async def f2(message: Message, state: FSMContext):
     pass
+'''
+
