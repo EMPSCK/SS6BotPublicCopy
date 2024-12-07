@@ -70,6 +70,7 @@ async def f2(message: Message, state: FSMContext):
             if status == -1:
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка', reply_markup=scrutineer_kb.back_mark)
+                await state.clear()
 
             if status == 1:
                 text, userstatus = await get_mes_menu(message)
@@ -81,11 +82,13 @@ async def f2(message: Message, state: FSMContext):
             if status == 0:
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка. Пинкод не найден.', reply_markup=scrutineer_kb.back_mark)
+                await state.clear()
         else:
             await message.delete()
             await oldmessage.edit_text('❌Ошибка. Неправильный формат пинкода.', reply_markup=scrutineer_kb.back_mark)
+            await state.clear()
     except:
-        pass
+        await state.clear()
 
 @router.callback_query(F.data == 'back_b')
 async def cmd_start(callback: types.CallbackQuery, state: FSMContext):

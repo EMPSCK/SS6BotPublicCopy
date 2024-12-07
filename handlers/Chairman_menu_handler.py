@@ -448,6 +448,7 @@ async def f2(message: Message, state: FSMContext):
             if status == -1:
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка', reply_markup=chairmans_kb.back_kb)
+                await state.clear()
 
 
 
@@ -461,12 +462,14 @@ async def f2(message: Message, state: FSMContext):
             if status == 0:
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка. Пинкод не найден.', reply_markup=chairmans_kb.back_kb)
+                await state.clear()
 
         else:
             await message.delete()
             await oldmessage.edit_text('❌Ошибка. Неправильный формат пинкода.', reply_markup=chairmans_kb.back_kb)
+            await state.clear()
     except Exception as e:
-        pass
+        await state.clear()
 
 
 async def get_mes_menu(message: Message):
