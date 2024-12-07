@@ -85,11 +85,11 @@ async def check_chairman_pin(tg_id, pin, mode):
         )
         with conn:
             cur = conn.cursor()
-            cur.execute(f"select PinCode, compId from competition where isActive = 1")
+            cur.execute(f"select pinCode, compId from competition where isActive = 1")
             ans = cur.fetchall()
             status, compid = 0, -1
             for comp in ans:
-                if comp['PinCode'] == pin:
+                if comp['pinCode'] == pin:
                     status, compid = 1, comp['compId']
                     break
 
