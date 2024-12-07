@@ -94,6 +94,9 @@ async def check_chairman_pin(tg_id, pin, mode):
                     break
 
             if status == 1:
+                cur.execute(f"update competition set isActive = 1 where compId = {compid}")
+                conn.commit()
+
                 if mode == 0:
                     sql = "INSERT INTO skatebotusers (`tg_id`, `Id_active_comp`, `status`, `active`) VALUES (%s, %s, %s, %s)"
                     cur.execute(sql, (tg_id, compid, 3, 1))
