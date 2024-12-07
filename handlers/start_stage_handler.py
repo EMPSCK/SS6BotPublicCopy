@@ -34,19 +34,19 @@ async def cmd_start(message: Message, state: FSMContext):
 @router.message(Command("id"))
 async def cmd_start(message: Message, state: FSMContext):
     await message.delete()
-    await message.answer(f'🗓Telegram_id: {message.from_user.id}')
+    await message.answer(f'🗓Telegram_id: <code>{message.from_user.id}</code>', parse_mode='HTML')
 
 
 
 
 @router.callback_query(F.data == 'scrutiner_role')
 async def cmd_start(callback: types.CallbackQuery):
-    await callback.message.edit_text(f"🗓Telegram_id: {callback.from_user.id}\n\nИнструкция №1", reply_markup=scrutineer_kb.back_mark)
+    await callback.message.edit_text(f"🗓Telegram_id: <code>{callback.from_user.id}</code>\n\nИнструкция №1", reply_markup=scrutineer_kb.back_mark, parse_mode='HTML')
 
 
 @router.callback_query(F.data == 'chairman_role')
 async def cmd_start(callback: types.CallbackQuery):
-    await callback.message.edit_text(f'🗓Telegram_id: {callback.from_user.id}\n\nИнструкция №2', reply_markup=scrutineer_kb.chairman_reg_mark)
+    await callback.message.edit_text(f'🗓Telegram_id: <code>{callback.from_user.id}</code>\n\nИнструкция №2', reply_markup=scrutineer_kb.chairman_reg_mark, parse_mode='HTML')
     pass
 
 
@@ -70,8 +70,6 @@ async def f2(message: Message, state: FSMContext):
             if status == -1:
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка', reply_markup=scrutineer_kb.back_mark)
-                await state.clear()
-
 
             if status == 1:
                 text, userstatus = await get_mes_menu(message)
@@ -83,15 +81,11 @@ async def f2(message: Message, state: FSMContext):
             if status == 0:
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка. Пинкод не найден.', reply_markup=scrutineer_kb.back_mark)
-                await state.clear()
-
-            await state.clear()
         else:
             await message.delete()
             await oldmessage.edit_text('❌Ошибка. Неправильный формат пинкода.', reply_markup=scrutineer_kb.back_mark)
     except:
-
-        await oldmessage.edit_text('❌Ошибка', reply_markup=scrutineer_kb.back_mark)
+        pass
 
 @router.callback_query(F.data == 'back_b')
 async def cmd_start(callback: types.CallbackQuery, state: FSMContext):
@@ -121,7 +115,7 @@ async def update_ftsarr_judges_list(message: types.Message):
 
 @router.message(Command("help"))
 async def update_ftsarr_judges_list(message: types.Message):
-    text = '''<b>Список команд:</b>\n/judges - начать загрузку списка судей, chairman/scrutineer\n\n/clean - удалить загруженных внутри соревнования, chairman/scrutineer\n\n/free - показать свободных после отправки последнего списка, chairman/scrutineer\n\n/updateftsarrlist - обновить общий список судей, Митя1/Митя2/Артем1/Артем2\n\n/delactive - снести активность всем судьям внутри соревнования, chairman/scrutineer\n\n/cleancounter - обнулить счетчик судейств в группах, chairman/scrutineer\n\n/change_generation_mode - изменить режим генерации списков в активном соревновании, chairman/scrutineer'''
+    text = '''<b>Список команд:</b>\n/id - получить telegram_id, chairman/scrutineer\n\n/judges - начать загрузку списка судей, chairman/scrutineer\n\n/clean - удалить загруженных внутри соревнования, chairman/scrutineer\n\n/free - показать свободных после отправки последнего списка, chairman/scrutineer\n\n/updateftsarrlist - обновить общий список судей, Митя1/Митя2/Артем1/Артем2\n\n/delactive - снести активность всем судьям внутри соревнования, chairman/scrutineer\n\n/cleancounter - обнулить счетчик судейств в группах, chairman/scrutineer\n\n/change_generation_mode - изменить режим генерации списков в активном соревновании, chairman/scrutineer'''
     await message.answer(text, parse_mode='HTML')
 
 

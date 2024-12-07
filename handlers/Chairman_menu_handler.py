@@ -429,6 +429,7 @@ async def cmd_start(message: Message, state: FSMContext):
 class Enter_chairman_pin(StatesGroup):
     firstState = State()
 
+
 @router.callback_query(F.data == 'enter_pin_on_menu')
 async def cmd_start(call: types.CallbackQuery, state: FSMContext):
     await state.clear()
@@ -447,7 +448,7 @@ async def f2(message: Message, state: FSMContext):
             if status == -1:
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка', reply_markup=chairmans_kb.back_kb)
-                await state.clear()
+
 
 
             if status == 1:
@@ -460,14 +461,12 @@ async def f2(message: Message, state: FSMContext):
             if status == 0:
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка. Пинкод не найден.', reply_markup=chairmans_kb.back_kb)
-                await state.clear()
 
-            await state.clear()
         else:
             await message.delete()
             await oldmessage.edit_text('❌Ошибка. Неправильный формат пинкода.', reply_markup=chairmans_kb.back_kb)
-    except:
-        await oldmessage.edit_text('❌Ошибка', reply_markup=chairmans_kb.back_kb)
+    except Exception as e:
+        pass
 
 
 async def get_mes_menu(message: Message):
