@@ -202,9 +202,8 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
                 pull.remove(judgeId)
                 all_judges = await generation_logic.relatives_filter(compId, all_judges, pull)
 
-                if groupType == 1:
-                    minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
-                    all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId)
+                minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
+                all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId, groupType)
 
 
                 lin_neibors_list = judges[judgeId][2].copy()
@@ -230,9 +229,9 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
 
                 all_judges = await generation_logic.distinct_clubs_filter(zgs_neibors_clubs_list, all_judges)
 
-                if groupType == 1:
-                    minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
-                    all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId)
+                minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
+                all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId, groupType)
+
 
                 pull = json[judges[judgeId][0]]['lin_id'] + json[judges[judgeId][0]]['zgs_id']
                 pull.remove(judgeId)

@@ -711,7 +711,7 @@ async def distinct_clubs_filter(clubs_list, all_judges):
     except Exception as e:
         return -1
 
-async def category_filter(all_judges, minCategoryId, compId):
+async def category_filter(all_judges, minCategoryId, compId, groupType):
     all_judges_01 = all_judges.copy()
     try:
         conn = pymysql.connect(
@@ -737,9 +737,14 @@ async def category_filter(all_judges, minCategoryId, compId):
                 if code is None:
                     code = 9
 
-                if code < minCategoryId:
-                    all_judges_01.remove(jud)
-                    continue
+                if groupType == 1:
+                    if code <= minCategoryId:
+                        all_judges_01.remove(jud)
+                        continue
+                else:
+                    if code < minCategoryId:
+                        all_judges_01.remove(jud)
+                        continue
 
                 if category == None or SPORT_CategoryDate == None or SPORT_CategoryDateConfirm == None:
                     continue
