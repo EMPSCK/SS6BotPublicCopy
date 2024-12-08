@@ -87,3 +87,19 @@ async def cmd_start(message: types.Message):
             await message.answer('Действие обработано')
         else:
             await message.answer('❌Ошибка')
+
+
+@router.message(Command("change_private_mode"))
+async def cmd_start(message: types.Message):
+    await message.delete()
+    user_status = await get_user_status_query.get_user_status(message.from_user.id)
+    if user_status == 2 or user_status == 3:
+        status, mode = await scrutineer_queries.change_private_mode(message.from_user.id)
+        if status == 1:
+            if mode == 0:
+                await message.answer('Режим конфиденциальности понижен')
+            if mode == 1:
+                await message.answer('Режим конфиденциальности повышен')
+        elif status == -1:
+            await message.answer('❌Ошибка')
+    pass

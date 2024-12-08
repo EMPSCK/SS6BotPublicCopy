@@ -55,12 +55,15 @@ async def CompId_to_name(id):
         )
         with conn:
             cur = conn.cursor()
-            cur.execute(f"SELECT compName, date1, date2, city FROM competition WHERE compId = {id}")
+            cur.execute(f"SELECT compName, date1, date2, city, isSecret FROM competition WHERE compId = {id}")
             name = cur.fetchone()
             cur.close()
             if name == None:
                 return 'не установлено'
-            return f"{name['compName']}\n{str(name['date1'])};{str(name['date2'])}|{name['city']}"
+            secretMode = name['isSecret']
+            decode = {0: 'по умолчанию', 1: 'повышенный'}
+            secretMode = decode[secretMode]
+            return f"{name['compName']}\n{str(name['date1'])};{str(name['date2'])}|{name['city']}\n\nРежи конфиденциальности: {secretMode}"
 
     except Exception as e:
         print(e)

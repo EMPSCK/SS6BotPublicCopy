@@ -41,7 +41,6 @@ async def get_ans(data):
     group_list.sort(key=lambda x: x[2] * -1)
 
     # 2. запрашиваем и обрабатываем список судей
-
     ans = await get_all_judges_yana(data['compId'])
     #print(relatives_list)
     #print(black_list)
@@ -59,7 +58,7 @@ async def get_ans(data):
     all_zgs_list = await judges_zgs_filter(all_judges_list)  # доступные згс из базы
 
 
-
+    print(len(all_judges_list))
     #ГЕНЕРАЦИЯ ЗГС
 
     all_groups_finish_jud = []
@@ -143,7 +142,7 @@ async def get_ans(data):
                 json_end['msg'] = 'Не удалось сформировать бригаду с учетом заданных условий. Попробуйте уменьшить количество ЗГС'
 
     # 3. начинаем работать с каждой группой из переданного списка
-
+        print(json_end)
         """
         Если нам передали несколько групп, то есть мы должны генерить в параллель
         и если это уже не первая группа и предыдущая была сгенерена успешно
@@ -175,7 +174,6 @@ async def get_ans(data):
                                             black_list)  # 5. определяем судей с запретом на судейство в конкретной категории
         group_all_judges_list = await judges_black_list_filter(group_all_judges_list,
                                                          black_list_cat)  # 6. удаляем таких судей из категории
-
 
 
         #Удаляем из пула згс ребят
@@ -554,7 +552,7 @@ async def json_to_message(json_export, data):
             r.append(text)
 
         if json_export[key]['status'] == 'fail':
-            text = f'Группа №{key}.\n{json_export[key]["msg"]}'
+            text = f'{key}. {group_name}\n{json_export[key]["msg"]}'
             r.append(text)
     return '\n\n'.join(r)
 
@@ -711,7 +709,7 @@ async def distinct_clubs_filter(clubs_list, all_judges):
     except Exception as e:
         return -1
 
-async def category_filter(all_judges, minCategoryId, compId, groupType):
+async def category_filter(all_judges, minCategoryId, compId, groupType, judgeType):
     all_judges_01 = all_judges.copy()
     try:
         conn = pymysql.connect(

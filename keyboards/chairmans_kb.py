@@ -258,3 +258,88 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
         print(e)
 
 
+async def edit_gen_judegs_markup_01(groupType, judgeId, judges, compId, json):
+    try:
+        buttons = []
+        but2 = []
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        with conn:
+            cur = conn.cursor()
+            if judges[judgeId][1] == 'l':
+                cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 0")
+                all_judges = cur.fetchall()
+                if len(all_judges) == 0:
+                    but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation"))
+                    buttons.append(but2)
+                    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+                all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
+                all_judges = await generation_logic.interdiction_filter(compId, judges[judgeId][0], all_judges)
+                pull = json[judges[judgeId][0]]['lin_id'] + json[judges[judgeId][0]]['zgs_id']
+                pull.remove(judgeId)
+                all_judges = await generation_logic.relatives_filter(compId, all_judges, pull)
+
+
+                minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
+                all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId, groupType, 'l')
+
+
+                lin_neibors_list = judges[judgeId][2].copy()
+                lin_neibors_list.remove(judgeId)
+                lin_neibors_clubs_list = await chairman_queries.get_lin_neibors_clubs(lin_neibors_list)
+                all_judges = await generation_logic.distinct_clubs_filter(lin_neibors_clubs_list, all_judges)
+                all_judges = await generation_logic.interdiction_filter(compId, judges[judgeId][0], all_judges)
+
+
+            if judges[judgeId][1] == 'z':
+                cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 1")
+                all_judges = cur.fetchall()
+                if len(all_judges) == 0:
+                    but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation"))
+                    buttons.append(but2)
+                    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+                all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
+                all_judges = await generation_logic.interdiction_filter(compId, judges[judgeId][0], all_judges)
+                zgs_neibors_list = judges[judgeId][2].copy()
+                zgs_neibors_list.remove(judgeId)
+                zgs_neibors_clubs_list = await chairman_queries.get_lin_neibors_clubs(zgs_neibors_list)
+
+                all_judges = await generation_logic.distinct_clubs_filter(zgs_neibors_clubs_list, all_judges)
+
+                minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
+                all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId, groupType, 'z')
+
+
+                pull = json[judges[judgeId][0]]['lin_id'] + json[judges[judgeId][0]]['zgs_id']
+                pull.remove(judgeId)
+                all_judges = await generation_logic.relatives_filter(compId, all_judges, pull)
+
+
+            for j in range(len(all_judges)):
+                but2.append(InlineKeyboardButton(text=f'{all_judges[j]["lastName"]} {all_judges[j]["firstName"]}',
+                                                 callback_data=f'gen_choise_jud_02_{all_judges[j]["id"]}'))
+                if j % 2 != 0:
+                    buttons.append(but2)
+                    but2 = []
+
+            if len(but2) == 0:
+                b = [InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation")]
+                buttons.append(b)
+            else:
+                but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation"))
+                buttons.append(but2)
+
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+    except Exception as e:
+        print(e)
+

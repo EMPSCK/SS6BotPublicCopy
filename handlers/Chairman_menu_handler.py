@@ -39,7 +39,7 @@ async def cmd_start(call: types.CallbackQuery):
         if await chairman_queries.del_unactive_comp(call.from_user.id, active_comp) == 1:
             active_comp = None
         info = await general_queries.CompId_to_name(active_comp)
-        await call.message.edit_text(f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/help - список всех команд\n/judges - отправить список судей\nАктивное соревнование: {info}", reply_markup = chairmans_kb.menu_kb)
+        await call.message.edit_text(f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/help - список всех команд\nАктивное соревнование: {info}", reply_markup = chairmans_kb.menu_kb)
 
 
 #Выбрать активное соревнование
@@ -53,7 +53,7 @@ async def set_active_comp(call: types.CallbackQuery):
         markup = await chairmans_kb.gen_list_comp(call.from_user.id)
         info = await general_queries.CompId_to_name(active_comp)
         await call.message.edit_text(
-            f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/help - список всех команд\n/judges - отправить список судей\nАктивное соревнование: {info}",
+            f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/help - список всех команд\nАктивное соревнование: {info}",
             reply_markup=markup)
 
 
@@ -80,7 +80,7 @@ async def cmd_start(call: types.CallbackQuery):
             active_comp = await general_queries.get_CompId(call.from_user.id)
             info = await general_queries.CompId_to_name(active_comp)
             await call.message.edit_text(
-                f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/help - список всех команд\n/judges - отправить список судей\nАктивное соревнование: {info}",
+                f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/help - список всех команд\nАктивное соревнование: {info}",
                 reply_markup=chairmans_kb.menu_kb)
         except:
             await call.message.answer('❌Ошибка. Попробуйте еще раз через /start')
@@ -94,7 +94,7 @@ async def cmd_start(call: types.CallbackQuery):
         info = await general_queries.CompId_to_name(active_comp)
         markup = await chairmans_kb.gen_list_comp(call.from_user.id)
         await call.message.edit_text(
-            f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/help - список всех команд\n/judges - отправить список судей\nАктивное соревнование: {info}", reply_markup=markup)
+            f"👋Добро пожаловать в chairman интерфейс бота SS6\n\n/help - список всех команд\nАктивное соревнование: {info}", reply_markup=markup)
 
 
 
