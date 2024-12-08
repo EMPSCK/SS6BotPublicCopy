@@ -120,11 +120,11 @@ async def update_ftsarr_judges_list(message: types.Message):
 async def update_ftsarr_judges_list(message: types.Message):
     await message.delete()
     text = '''<b>Список команд:</b>\n/id - получить telegram_id, chairman/scrutineer\n\n/judges - начать загрузку списка судей, chairman/scrutineer\n\n/clean - удалить загруженных внутри соревнования, chairman/scrutineer\n\n/free - показать свободных после отправки последнего списка, chairman/scrutineer\n\n/updateftsarrlist - обновить общий список судей, admin\n\n/delactive - снести активность всем судьям внутри соревнования, chairman/scrutineer\n\n/cleancounter - обнулить счетчик судейств в группах, chairman/scrutineer\n\n/change_generation_mode - изменить режим генерации списков в активном соревновании, chairman/scrutineer\n\n/change_private_mode - изменить режим конфиденциальности, chairman/scrutineer'''
-    text_01 = '''Ниже представлен список команд для управления настройками SS6bot. Пример работы с ботом можно посмотреть по <a href = "https://t.me/+aThp4v9UfGRhY2Ey">ссылке</a>.
+    text_01 = '''Ниже представлен список команд для управления настройками SS6bot. Пример работы с ботом можно посмотреть по ссылке.
     
     <b>Общие</b>
     /start -  запустить бота или перейти в меню
-    /help - просмотреть список доступных команд
+    /help - список доступных команд
     /id - получить telegram_id
     /updateftsarrlist - обновить общий список судей, admin
     

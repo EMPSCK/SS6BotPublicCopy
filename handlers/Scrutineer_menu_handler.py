@@ -97,9 +97,9 @@ async def cmd_start(message: types.Message):
         status, mode = await scrutineer_queries.change_private_mode(message.from_user.id)
         if status == 1:
             if mode == 0:
-                await message.answer('Режим конфиденциальности понижен')
+                await message.answer('🔽Режим конфиденциальности понижен')
             if mode == 1:
-                await message.answer('Режим конфиденциальности повышен')
+                await message.answer('🔼Режим конфиденциальности повышен')
         elif status == -1:
             await message.answer('❌Ошибка')
     pass
