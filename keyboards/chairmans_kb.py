@@ -203,7 +203,7 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
 
                 pull.remove(judgeId)
                 all_judges = await generation_logic.relatives_filter(compId, all_judges, pull)
-
+                print(all_judges)
                 minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
                 all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId, groupType, 'l')
 
