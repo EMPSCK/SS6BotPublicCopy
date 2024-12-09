@@ -23,6 +23,7 @@ last_added_judges = {}
 judges_codes = {}
 generation_results = {}
 old_enter_pin_m = {}
+generation_zgs_results = {}
 
 class Load_list_judges(StatesGroup):
     next_step = State()
@@ -111,7 +112,7 @@ async def cmd_start(message: Message):
             if status == 1:
                 msg = await message.answer('✅Список очищен')
                 await message.delete()
-                await start_stage_handler.del_message_after_time(msg, 1)
+                await start_stage_handler.del_message_after_time(msg, config.expirate_message_timer)
             else:
                 await message.answer('❌Ошибка')
         else:
@@ -416,7 +417,7 @@ async def cmd_start(message: Message, state: FSMContext):
         if r == 1:
             msg = await message.answer("✅Действие обработано")
             await message.delete()
-            await start_stage_handler.del_message_after_time(msg, 1)
+            await start_stage_handler.del_message_after_time(msg, config.expirate_message_timer)
         else:
             await message.answer("❌Ошибка")
 
@@ -429,7 +430,7 @@ async def cmd_start(message: Message, state: FSMContext):
         if msg != -1:
             await message.delete()
             msg = await message.answer(msg)
-            await start_stage_handler.del_message_after_time(msg, 1)
+            await start_stage_handler.del_message_after_time(msg, config.expirate_message_timer)
         else:
             await message.answer("❌Ошибка")
 
@@ -456,8 +457,6 @@ async def f2(message: Message, state: FSMContext):
                 await message.delete()
                 await oldmessage.edit_text('❌Ошибка', reply_markup=chairmans_kb.back_kb)
                 await state.clear()
-
-
 
             if status == 1:
                 text, userstatus = await get_mes_menu(message)
@@ -502,16 +501,55 @@ async def get_mes_menu(message: Message):
     if user_status == 0:
         return "👋Добро пожаловать в интерфейс бота SS6\n\nДля начала работы необходимо пройти регистрацию в системе\nВыберите роль:", 0
 
-'''
+
 class Gen_zgs_states(StatesGroup):
     firstState = State()
 
+from chairman_moves import generation_logic
 @router.message(Command("gen_zgs"))
 async def cmd_start(message: Message, state: FSMContext):
-    await state.set_state(Gen_zgs_states.firstState)
+    return
+    user_status = await get_user_status_query.get_user_status(message.from_user.id)
+    if user_status == 2 or user_status == 3:
+        active_comp = await general_queries.get_CompId(message.from_user.id)
+        if active_comp == 0:
+            await message.delete()
+            return await message.answer('❌Ошибка. Необходимо задать активное соревнование.')
+
+        active_or_not = await general_queries.active_or_not(active_comp)
+        if active_or_not == 0:
+            return await message.answer('❌Ошибка. Соревнование неактивно.')
+
+        await chairman_queries.clear_zgs(active_comp)
+        msg = await message.answer('Введите количесво:')
+        generation_zgs_results[message.from_user.id] = {'en_msg': msg}
+        await state.set_state(Gen_zgs_states.firstState)
+
 
 @router.message(Gen_zgs_states.firstState)
 async def f2(message: Message, state: FSMContext):
-    pass
-'''
+    num = message.text
+    if num.isdigit():
+        active_comp = await general_queries.get_CompId(message.from_user.id)
+        json = await generation_logic.generate_zgs(active_comp, int(num))
+        await message.delete()
+        await generation_zgs_results[message.from_user.id]['en_msg'].delete()
+        msg = await message.answer(json['msg'], reply_markup=chairmans_kb.generation_zgs_kb)
+        generation_zgs_results[message.from_user.id] = {'json': json}
+        await state.clear()
+    else:
+        await state.clear()
+        return await message.answer('❌Ошибка. Неверный формат данных.')
+
+
+@router.callback_query(F.data == 'save_zgs_result')
+async def cmd_start(call: types.CallbackQuery):
+    r = await chairman_queries.create_zgs(generation_zgs_results[call.from_user.id]['json'])
+
+    if r == 1:
+        await call.message.delete_reply_markup()
+        await call.message.answer('✅Результат сохранен.')
+    elif r == -1:
+        await call.message.delete_reply_markup()
+        await call.message.answer('❌Ошибка')
 

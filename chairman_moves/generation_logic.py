@@ -735,44 +735,73 @@ async def category_filter(all_judges, minCategoryId, compId, groupType, judgeTyp
                 if code is None:
                     code = 9
 
-                if groupType == 1:
+                if judgeType == 'l':
                     if code <= minCategoryId:
                         all_judges_01.remove(jud)
                         continue
-                else:
-                    if code < minCategoryId:
+
+                    if category == None or SPORT_CategoryDate == None or SPORT_CategoryDateConfirm == None:
+                        continue
+
+                    if type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) == str:
                         all_judges_01.remove(jud)
                         continue
 
-                if category == None or SPORT_CategoryDate == None or SPORT_CategoryDateConfirm == None:
-                    continue
+                    elif type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) != str:
+                        CategoryDate = SPORT_CategoryDate
 
-                if type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) == str:
-                    all_judges_01.remove(jud)
-                    continue
+                    elif type(SPORT_CategoryDateConfirm) != str and type(SPORT_CategoryDate) == str:
+                        CategoryDate = SPORT_CategoryDateConfirm
 
-                elif type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) != str:
-                    CategoryDate = SPORT_CategoryDate
+                    else:
+                        CategoryDate = max(SPORT_CategoryDateConfirm, SPORT_CategoryDate)
 
-                elif type(SPORT_CategoryDateConfirm) != str and type(SPORT_CategoryDate) == str:
-                    CategoryDate = SPORT_CategoryDateConfirm
+                    if groupType == 1:
+                        a = date2 - CategoryDate
+                        a = a.days
+                        if code == 5 or code == 4:
+                            if a - 365 * 2 > 0:
+                                all_judges_01.remove(jud)
 
-                else:
-                    CategoryDate = max(SPORT_CategoryDateConfirm, SPORT_CategoryDate)
+                        elif code == 3:
+                            if a - 365 > 0:
+                                all_judges_01.remove(jud)
 
-                a = date2 - CategoryDate
-                a = a.days
-                if code == 5 or code == 4:
-                    if a - 365*2 > 0:
-                        all_judges_01.remove(jud)
+                        elif code == 6:
+                            if a - 365 * 4 > 0:
+                                all_judges_01.remove(jud)
+                if judgeType == 'z':
+                    if groupType == 1:
+                        if category == None or SPORT_CategoryDate == None or SPORT_CategoryDateConfirm == None:
+                            continue
 
-                elif code == 3:
-                    if a - 365 > 0:
-                        all_judges_01.remove(jud)
+                        if type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) == str:
+                            all_judges_01.remove(jud)
+                            continue
 
-                elif code == 6:
-                    if a - 365*4 > 0:
-                        all_judges_01.remove(jud)
+                        elif type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) != str:
+                            CategoryDate = SPORT_CategoryDate
+
+                        elif type(SPORT_CategoryDateConfirm) != str and type(SPORT_CategoryDate) == str:
+                            CategoryDate = SPORT_CategoryDateConfirm
+
+                        else:
+                            CategoryDate = max(SPORT_CategoryDateConfirm, SPORT_CategoryDate)
+
+                        if groupType == 1:
+                            a = date2 - CategoryDate
+                            a = a.days
+                            if code == 5 or code == 4:
+                                if a - 365 * 2 > 0:
+                                    all_judges_01.remove(jud)
+
+                            elif code == 3:
+                                if a - 365 > 0:
+                                    all_judges_01.remove(jud)
+
+                            elif code == 6:
+                                if a - 365 * 4 > 0:
+                                    all_judges_01.remove(jud)
         return all_judges_01
     except Exception as e:
         return -1
@@ -846,22 +875,23 @@ async def generate_zgs(compId, n):
         )
         with conn:
             cur = conn.cursor()
-            cur.execute(f"select firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges where compId = {compId} and active = 1")
+            cur.execute(f"select firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges where compId = {compId} and active = 1 and workCode <> 4")
             judges_all = cur.fetchall()
+
             if len(judges_all) < n:
                 return {'msg': "Значение введеного параметра превышает количесво активных судей", 'judges': [], 'status': 'fail'}
-
             i = 0
             while i != n:
-                jud = judges_all.pop(random.randint(0, len(judges_all)))
+                jud = judges_all.pop(random.randint(0, len(judges_all) - 1))
                 names.append(jud)
                 i += 1
             text = await generate_zgs_to_message(names)
             json_export = {'msg': text, 'status': 'succsess', 'judges': names}
         return json_export
-    except:
+    except Exception as e:
+        print(e)
         pass
 
 async def generate_zgs_to_message(names):
     text = f'Згс. {", ".join([i["lastName"] + " " + i["firstName"] for i in names])}'
-    return
+    return text

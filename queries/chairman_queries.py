@@ -1438,3 +1438,42 @@ async def get_min_catId(compId, groupNumber):
                 return ans['minCategoryId']
     except Exception as e:
         return -1
+
+
+async def create_zgs(json):
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            judges = json['judges']
+            for jud in judges:
+                cur.execute(f"update competition_judges set workCode = 1 where id = {jud['id']}")
+                conn.commit()
+            return 1
+    except Exception as e:
+        print(e)
+        return -1
+
+async def clear_zgs(compId):
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"update competition_judges set workCode = 0 where workCode = 1")
+            conn.commit()
+    except Exception as e:
+        return -1

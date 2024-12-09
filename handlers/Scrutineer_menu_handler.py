@@ -1,5 +1,7 @@
 from aiogram import Router, F
 from aiogram import types
+
+import config
 from keyboards import scrutineer_kb
 from queries import get_user_status_query
 from queries import scrutineer_queries
@@ -86,9 +88,11 @@ async def cmd_start(message: types.Message):
         status = await scrutineer_queries.set_active_0(message.from_user.id)
         if status == 1:
             msg = await message.answer('✅Судьи деактивированы')
-            await start_stage_handler.del_message_after_time(msg, 1)
+            await message.delete()
+            await start_stage_handler.del_message_after_time(msg, config.expirate_message_timer)
         else:
             await message.answer('❌Ошибка')
+            await message.delete()
 
 
 @router.message(Command("change_private_mode"))
@@ -100,10 +104,10 @@ async def cmd_start(message: types.Message):
         if status == 1:
             if mode == 0:
                 msg = await message.answer('🔽Режим конфиденциальности понижен', )
-                await start_stage_handler.del_message_after_time(msg, 1)
+                await start_stage_handler.del_message_after_time(msg, config.expirate_message_timer)
             if mode == 1:
                 msg = await message.answer('🔼Режим конфиденциальности повышен')
-                await start_stage_handler.del_message_after_time(msg, 1)
+                await start_stage_handler.del_message_after_time(msg, config.expirate_message_timer)
         elif status == -1:
             await message.answer('❌Ошибка')
     pass
