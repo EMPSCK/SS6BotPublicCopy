@@ -111,3 +111,5 @@ async def get_judges_free(compId):
     except:
         print('Ошибка выполнения запроса поиск свободных судей')
         return 0
+
+

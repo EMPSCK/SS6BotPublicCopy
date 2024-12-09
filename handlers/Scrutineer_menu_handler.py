@@ -6,6 +6,7 @@ from queries import scrutineer_queries
 from queries import chairman_queries
 from queries import general_queries
 from aiogram.filters import Command
+from handlers import start_stage_handler
 router = Router()
 confirm_tour_id_S = {}
 
@@ -84,7 +85,8 @@ async def cmd_start(message: types.Message):
     if user_status == 2 or user_status == 3:
         status = await scrutineer_queries.set_active_0(message.from_user.id)
         if status == 1:
-            await message.answer('Действие обработано')
+            msg = await message.answer('✅Судьи деактивированы')
+            await start_stage_handler.del_message_after_time(msg, 1)
         else:
             await message.answer('❌Ошибка')
 
@@ -97,9 +99,11 @@ async def cmd_start(message: types.Message):
         status, mode = await scrutineer_queries.change_private_mode(message.from_user.id)
         if status == 1:
             if mode == 0:
-                await message.answer('🔽Режим конфиденциальности понижен')
+                msg = await message.answer('🔽Режим конфиденциальности понижен', )
+                await start_stage_handler.del_message_after_time(msg, 1)
             if mode == 1:
-                await message.answer('🔼Режим конфиденциальности повышен')
+                msg = await message.answer('🔼Режим конфиденциальности повышен')
+                await start_stage_handler.del_message_after_time(msg, 1)
         elif status == -1:
             await message.answer('❌Ошибка')
     pass

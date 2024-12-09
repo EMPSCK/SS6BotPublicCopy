@@ -11,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from chairman_moves import load_judges_list
 from queries import scrutineer_queries
+from handlers import start_stage_handler
 
 import config
 router = Router()
@@ -108,7 +109,9 @@ async def cmd_start(message: Message):
         if active_or_not == 1:
             status = await chairman_queries.cancel_load(message.from_user.id)
             if status == 1:
-                await message.answer('Список очищен')
+                msg = await message.answer('✅Список очищен')
+                await message.delete()
+                await start_stage_handler.del_message_after_time(msg, 1)
             else:
                 await message.answer('❌Ошибка')
         else:
@@ -411,7 +414,9 @@ async def cmd_start(message: Message, state: FSMContext):
     if user_status == 3 or user_status == 2:
         r = await chairman_queries.clean_group_counter(message.from_user.id)
         if r == 1:
-            await message.answer("Действие обработано")
+            msg = await message.answer("✅Действие обработано")
+            await message.delete()
+            await start_stage_handler.del_message_after_time(msg, 1)
         else:
             await message.answer("❌Ошибка")
 
@@ -422,7 +427,9 @@ async def cmd_start(message: Message, state: FSMContext):
     if user_status == 3 or user_status == 2:
         msg = await chairman_queries.change_generation_mode(message.from_user.id)
         if msg != -1:
-            await message.answer(msg)
+            await message.delete()
+            msg = await message.answer(msg)
+            await start_stage_handler.del_message_after_time(msg, 1)
         else:
             await message.answer("❌Ошибка")
 
