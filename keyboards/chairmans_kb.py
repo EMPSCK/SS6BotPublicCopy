@@ -191,23 +191,25 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
             if judges[judgeId][1] == 'l':
                 cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 0")
                 all_judges = cur.fetchall()
+                #print(all_judges, "Просто список")
                 if len(all_judges) == 0:
                     but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation"))
                     buttons.append(but2)
                     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
                 all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
+                #print(all_judges, "Удалили из сообщения")
                 all_judges = await generation_logic.interdiction_filter(compId, judges[judgeId][0], all_judges)
-
+                #print(all_judges, "Запреты")
                 pull = json[judges[judgeId][0]]['lin_id'] + json[judges[judgeId][0]]['zgs_id']
 
                 pull.remove(judgeId)
                 all_judges = await generation_logic.relatives_filter(compId, all_judges, pull)
-
+                #print(all_judges, "Родственники")
                 minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
                 all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId, groupType, 'l')
 
-
+                #print(all_judges, "Категории")
                 lin_neibors_list = judges[judgeId][2].copy()
                 lin_neibors_list.remove(judgeId)
                 lin_neibors_clubs_list = await chairman_queries.get_lin_neibors_clubs(lin_neibors_list)

@@ -736,7 +736,7 @@ async def category_filter(all_judges, minCategoryId, compId, groupType, judgeTyp
                     code = 9
 
                 if judgeType == 'l':
-                    if code <= minCategoryId:
+                    if code < minCategoryId:
                         all_judges_01.remove(jud)
                         continue
 
