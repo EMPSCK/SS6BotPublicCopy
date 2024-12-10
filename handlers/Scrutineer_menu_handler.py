@@ -111,3 +111,20 @@ async def cmd_start(message: types.Message):
         elif status == -1:
             await message.answer('❌Ошибка')
     pass
+
+@router.message(Command("change_generation_zgs_mode"))
+async def cmd_start(message: types.Message):
+    await message.delete()
+    user_status = await get_user_status_query.get_user_status(message.from_user.id)
+    if user_status == 2 or user_status == 3:
+        status, mode = await scrutineer_queries.change_geneation_zgs_mode(message.from_user.id)
+        if status == 1:
+            if mode == 0:
+                msg = await message.answer('🗓Режим генерации згс для спортивных категорий отключен')
+                await start_stage_handler.del_message_after_time(msg, config.expirate_message_timer)
+            if mode == 1:
+                msg = await message.answer('🗓Режим генерации згс для спортивных категорий активирован')
+                await start_stage_handler.del_message_after_time(msg, config.expirate_message_timer)
+        elif status == -1:
+            await message.answer('❌Ошибка')
+    pass

@@ -130,7 +130,6 @@ async def get_generation_kb(active_comp):
     elif mode == -1:
         return -1
 
-
 async def get_gen_edit_markup(json):
     try:
         judges = json['judges']
@@ -191,25 +190,23 @@ async def edit_gen_judegs_markup(groupType, judgeId, judges, compId, json):
             if judges[judgeId][1] == 'l':
                 cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 0")
                 all_judges = cur.fetchall()
-                #print(all_judges, "Просто список")
                 if len(all_judges) == 0:
                     but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_generation"))
                     buttons.append(but2)
                     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
                 all_judges = await generation_logic.same_judges_filter(all_judges, list(judges.keys()))
-                #print(all_judges, "Удалили из сообщения")
                 all_judges = await generation_logic.interdiction_filter(compId, judges[judgeId][0], all_judges)
-                #print(all_judges, "Запреты")
+
                 pull = json[judges[judgeId][0]]['lin_id'] + json[judges[judgeId][0]]['zgs_id']
 
                 pull.remove(judgeId)
                 all_judges = await generation_logic.relatives_filter(compId, all_judges, pull)
-                #print(all_judges, "Родственники")
+
                 minCategoryId = await chairman_queries.get_min_catId(compId, judges[judgeId][0])
                 all_judges = await generation_logic.category_filter(all_judges, minCategoryId, compId, groupType, 'l')
 
-                #print(all_judges, "Категории")
+
                 lin_neibors_list = judges[judgeId][2].copy()
                 lin_neibors_list.remove(judgeId)
                 lin_neibors_clubs_list = await chairman_queries.get_lin_neibors_clubs(lin_neibors_list)
@@ -347,9 +344,101 @@ async def edit_gen_judegs_markup_01(groupType, judgeId, judges, compId, json):
     except Exception as e:
         print(e)
 
-
 generation_zgs_button_01 = InlineKeyboardButton(text="Сохранить", callback_data='save_zgs_result')
 generation_zgs_button_02 = InlineKeyboardButton(text="Перегенерировать", callback_data='regenerate_zgs')
 generation_zgs_button_03 = InlineKeyboardButton(text="Редактировать", callback_data='edit_zgs')
 generation_zgs_button_04 = InlineKeyboardButton(text="Выйти из режима генерации", callback_data='end_zgs_generation_proces')
 generation_zgs_kb = InlineKeyboardMarkup(inline_keyboard=[[generation_zgs_button_01, generation_zgs_button_02], [generation_zgs_button_03, generation_zgs_button_04]])
+
+
+
+async def get_gen_zgs_edit_markup_01(json):
+    try:
+        judges = json['judges']
+        buttons = []
+        but2 = []
+
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            for ans in judges:
+                but2.append(InlineKeyboardButton(text=judges[ans]['lastName'] + ' ' + judges[ans]['firstName'], callback_data=f"zgs_generation_{ans}"))
+                if len(but2) == 2:
+                    buttons.append(but2)
+                    but2 = []
+
+
+        if len(but2) == 0:
+            b = [InlineKeyboardButton(text='Назад', callback_data=f"back_to_zgs_generation")]
+            buttons.append(b)
+        else:
+            but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_zgs_generation"))
+            buttons.append(but2)
+
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
+    except Exception as e:
+        print(e)
+
+from chairman_moves import  generation_logic
+async def get_gen_zgs_edit_markup_02(json, compId):
+    try:
+        buttons = []
+        but2 = []
+        judges = json['judges']
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"SELECT firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges WHERE compId = {compId} and active = 1 and workCode = 0")
+            all_judges = cur.fetchall()
+            all_judges = await same_zgs_fiter(all_judges, judges)
+            cur.execute(f"select generation_zgs_mode from competition where compId = {compId}")
+            generation_zgs_mode = cur.fetchone()
+            generation_zgs_mode = generation_zgs_mode['generation_zgs_mode']
+
+            if generation_zgs_mode == 1:
+                all_judges = await generation_logic.generation_zgs_cat_filter(all_judges, compId)
+
+            for j in range(len(all_judges)):
+                but2.append(InlineKeyboardButton(text=f'{all_judges[j]["lastName"]} {all_judges[j]["firstName"]}',
+                                                 callback_data=f'zgs_02_generation_{all_judges[j]["id"]}'))
+                if j % 2 != 0:
+                    buttons.append(but2)
+                    but2 = []
+
+            if len(but2) == 0:
+                b = [InlineKeyboardButton(text='Назад', callback_data=f"back_to_zgs_generation")]
+                buttons.append(b)
+            else:
+                but2.append(InlineKeyboardButton(text='Назад', callback_data=f"back_to_zgs_generation"))
+                buttons.append(but2)
+
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+
+    except Exception as e:
+        print(e)
+
+
+async def same_zgs_fiter(all_judges, judges):
+    all_judges_01 = all_judges.copy()
+    for i in all_judges:
+        if i['id'] in judges:
+            all_judges_01.remove(i)
+    return all_judges_01

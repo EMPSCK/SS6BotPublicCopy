@@ -139,3 +139,32 @@ async def change_private_mode(user_id):
                 return 1, 0
     except:
         return -1, -1
+
+
+async def change_geneation_zgs_mode(user_id):
+    try:
+        active_comp = await general_queries.get_CompId(user_id)
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"select generation_zgs_mode from competition where compId = {active_comp}")
+            ans = cur.fetchone()
+
+            if ans['generation_zgs_mode'] == 0:
+                cur.execute(f"update competition set generation_zgs_mode = 1 where compId = {active_comp}")
+                conn.commit()
+                return 1, 1
+
+            if ans['generation_zgs_mode'] == 1:
+                cur.execute(f"update competition set generation_zgs_mode = 0 where compId = {active_comp}")
+                conn.commit()
+                return 1, 0
+    except:
+        return -1, -1

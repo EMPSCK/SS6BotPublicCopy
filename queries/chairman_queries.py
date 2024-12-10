@@ -1454,7 +1454,7 @@ async def create_zgs(json):
             cur = conn.cursor()
             judges = json['judges']
             for jud in judges:
-                cur.execute(f"update competition_judges set workCode = 1 where id = {jud['id']}")
+                cur.execute(f"update competition_judges set workCode = 1 where id = {jud}")
                 conn.commit()
             return 1
     except Exception as e:

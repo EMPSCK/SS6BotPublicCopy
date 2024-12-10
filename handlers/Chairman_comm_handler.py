@@ -579,6 +579,7 @@ async def cmd_start(call: types.CallbackQuery):
     compid = generation_results[call.from_user.id]['compId']
     markup = await chairmans_kb.get_generation_kb(compid)
 
+
     await call.message.edit_text(text=text, reply_markup=markup)
 
 

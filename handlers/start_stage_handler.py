@@ -121,7 +121,7 @@ async def update_ftsarr_judges_list(message: types.Message):
 @router.message(Command("help"))
 async def update_ftsarr_judges_list(message: types.Message):
     await message.delete()
-    text = '''<b>Список команд:</b>\n/id - получить telegram_id, chairman/scrutineer\n\n/judges - начать загрузку списка судей, chairman/scrutineer\n\n/clean - удалить загруженных внутри соревнования, chairman/scrutineer\n\n/free - показать свободных после отправки последнего списка, chairman/scrutineer\n\n/updateftsarrlist - обновить общий список судей, admin\n\n/delactive - снести активность всем судьям внутри соревнования, chairman/scrutineer\n\n/cleancounter - обнулить счетчик судейств в группах, chairman/scrutineer\n\n/change_generation_mode - изменить режим генерации списков в активном соревновании, chairman/scrutineer\n\n/change_private_mode - изменить режим конфиденциальности, chairman/scrutineer'''
+    #text = '''<b>Список команд:</b>\n/id - получить telegram_id, chairman/scrutineer\n\n/judges - начать загрузку списка судей, chairman/scrutineer\n\n/clean - удалить загруженных внутри соревнования, chairman/scrutineer\n\n/free - показать свободных после отправки последнего списка, chairman/scrutineer\n\n/updateftsarrlist - обновить общий список судей, admin\n\n/delactive - снести активность всем судьям внутри соревнования, chairman/scrutineer\n\n/cleancounter - обнулить счетчик судейств в группах, chairman/scrutineer\n\n/change_generation_mode - изменить режим генерации списков в активном соревновании, chairman/scrutineer\n\n/change_private_mode - изменить режим конфиденциальности, chairman/scrutineer'''
     text_01 = '''Ниже представлен список команд для управления настройками SS6bot. Пример работы с ботом можно посмотреть по ссылке.
     
     <b>Общие</b>
@@ -133,6 +133,7 @@ async def update_ftsarr_judges_list(message: types.Message):
     <b>Управление параметрами турнира</b>
     /change_generation_mode - изменить режим генерации списков
     /change_private_mode - изменить режим конфиденциальности
+    /change_generation_zgs_mode - изменить режим генерации згс
     
     <b>Валидация судейских бригад</b>
     /judges - начать загрузку списка судей
@@ -140,8 +141,31 @@ async def update_ftsarr_judges_list(message: types.Message):
     /free - показать свободных судей после отправки последнего списка
     /delactive -  деактивировать судей внутри соревнования
     /cleancounter - обнулить счетчик судейств в группах
+    /gen_zgs - запустить генерацию згс
     Для запуска генерации состава судейских бригад отправьте номера групп через пробел
     '''
+    text_01 = '''Ниже представлен список команд для управления настройками SS6bot. Пример работы с ботом можно посмотреть по ссылке.
+
+        <b>Общие</b>
+        /start -  запустить бота или перейти в меню
+        /help - список доступных команд
+        /id - получить telegram_id
+        /updateftsarrlist - обновить общий список судей, admin
+
+        <b>Управление параметрами турнира</b>
+        /change_generation_mode - изменить режим генерации списков
+        /change_private_mode - изменить режим конфиденциальности
+
+        <b>Валидация судейских бригад</b>
+        /judges - начать загрузку списка судей
+        /clean - удалить загруженных судей внутри соревнования
+        /free - показать свободных судей после отправки последнего списка
+        /delactive -  деактивировать судей внутри соревнования
+        /cleancounter - обнулить счетчик судейств в группах
+        
+        <b>Генерация линейных бригад</b>
+        Для запуска генерации состава судейских бригад отправьте номера групп через пробел
+        '''
     await message.answer(text_01, parse_mode='HTML')
 
 

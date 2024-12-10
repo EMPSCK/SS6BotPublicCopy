@@ -864,7 +864,7 @@ async def relatives_filter(compId, all_judges, pull):
 
 async def generate_zgs(compId, n):
     try:
-        names = []
+        names = {}
         conn = pymysql.connect(
             host=config.host,
             port=3306,
@@ -875,15 +875,23 @@ async def generate_zgs(compId, n):
         )
         with conn:
             cur = conn.cursor()
-            cur.execute(f"select firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges where compId = {compId} and active = 1 and workCode <> 4")
+            cur.execute(f"select compId, firstName, lastName, id, DSFARR_Category_Id, SPORT_CategoryDate, SPORT_CategoryDateConfirm, SPORT_Category from competition_judges where compId = {compId} and active = 1 and workCode <> 4")
             judges_all = cur.fetchall()
+
+            cur.execute(f"select generation_zgs_mode from competition where compId = {compId}")
+            generation_zgs_mode = cur.fetchone()
+            generation_zgs_mode = generation_zgs_mode['generation_zgs_mode']
+
 
             if len(judges_all) < n:
                 return {'msg': "Значение введеного параметра превышает количесво активных судей", 'judges': [], 'status': 'fail'}
             i = 0
+
+            if generation_zgs_mode == 1:
+                judges_all = await generation_zgs_cat_filter(judges_all, compId)
             while i != n:
                 jud = judges_all.pop(random.randint(0, len(judges_all) - 1))
-                names.append(jud)
+                names[jud['id']] = jud
                 i += 1
             text = await generate_zgs_to_message(names)
             json_export = {'msg': text, 'status': 'succsess', 'judges': names}
@@ -892,6 +900,68 @@ async def generate_zgs(compId, n):
         print(e)
         pass
 
+
 async def generate_zgs_to_message(names):
-    text = f'Згс. {", ".join([i["lastName"] + " " + i["firstName"] for i in names])}'
+    text = []
+    for judId in names:
+        name = names[judId]["lastName"] + ' ' + names[judId]["firstName"]
+        text.append(name)
+    text = f"Згс. {', '.join(text)}"
     return text
+
+
+async def generation_zgs_cat_filter(all_judges, compId):
+    all_judges_01 = all_judges.copy()
+    try:
+        conn = pymysql.connect(
+            host=config.host,
+            port=3306,
+            user=config.user,
+            password=config.password,
+            database=config.db_name,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        with conn:
+            cur = conn.cursor()
+            cur.execute(f"select date2 from competition where compId = {compId}")
+            date2 = cur.fetchone()
+            date2 = date2['date2']
+
+            for jud in all_judges:
+                category = jud['SPORT_Category']
+                SPORT_CategoryDate = jud['SPORT_CategoryDate']
+                SPORT_CategoryDateConfirm = jud['SPORT_CategoryDateConfirm']
+                code = jud['DSFARR_Category_Id']
+
+                if category == None or SPORT_CategoryDate == None or SPORT_CategoryDateConfirm == None:
+                    continue
+
+                if type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) == str:
+                    all_judges_01.remove(jud)
+                    continue
+
+                elif type(SPORT_CategoryDateConfirm) == str and type(SPORT_CategoryDate) != str:
+                    CategoryDate = SPORT_CategoryDate
+
+                elif type(SPORT_CategoryDateConfirm) != str and type(SPORT_CategoryDate) == str:
+                    CategoryDate = SPORT_CategoryDateConfirm
+
+                else:
+                    CategoryDate = max(SPORT_CategoryDateConfirm, SPORT_CategoryDate)
+
+                a = date2 - CategoryDate
+                a = a.days
+                if code == 5 or code == 4:
+                    if a - 365 * 2 > 0:
+                        all_judges_01.remove(jud)
+
+                elif code == 3:
+                    if a - 365 > 0:
+                        all_judges_01.remove(jud)
+
+                elif code == 6:
+                    if a - 365 * 4 > 0:
+                        all_judges_01.remove(jud)
+        return all_judges_01
+    except Exception as e:
+        return -1
