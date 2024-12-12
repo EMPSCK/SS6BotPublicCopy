@@ -34,6 +34,7 @@ async def get_list_comp(tg_id):
 
 async def get_Chairman(tg_id):
     try:
+        active_comp_id = await general_queries.get_CompId(tg_id)
         conn = pymysql.connect(
             host=config.host,
             port=3306,
@@ -49,7 +50,8 @@ async def get_Chairman(tg_id):
             chairman_id = cur.fetchone()
             cur.close()
             return chairman_id['chairman_Id']
-    except:
+    except Exception as e:
+        print(e)
         print('Ошибка выполнения запроса поиск chairman')
         return 0
 

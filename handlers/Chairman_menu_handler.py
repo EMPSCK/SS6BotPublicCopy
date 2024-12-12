@@ -526,39 +526,48 @@ async def cmd_start(message: Message, state: FSMContext):
 
 @router.message(Gen_zgs_states.firstState)
 async def f2(message: Message, state: FSMContext):
-    num = message.text
-    if num.isdigit():
-        active_comp = await general_queries.get_CompId(message.from_user.id)
-        json = await generation_logic.generate_zgs(active_comp, int(num))
-        await message.delete()
-        await generation_zgs_results[message.from_user.id]['en_msg'].delete()
-        msg = await message.answer(json['msg'], reply_markup=chairmans_kb.generation_zgs_kb)
-        generation_zgs_results[message.from_user.id] = {'json': json, 'num': num, 'compId': active_comp}
-        await state.clear()
-    else:
-        await state.clear()
-        return await message.answer('❌Ошибка. Неверный формат данных.')
+    try:
+        num = message.text
+        if num.isdigit():
+            active_comp = await general_queries.get_CompId(message.from_user.id)
+            json = await generation_logic.generate_zgs(active_comp, int(num))
+            await message.delete()
+            await generation_zgs_results[message.from_user.id]['en_msg'].delete()
+            msg = await message.answer(json['msg'], reply_markup=chairmans_kb.generation_zgs_kb)
+            generation_zgs_results[message.from_user.id] = {'json': json, 'num': num, 'compId': active_comp}
+            await state.clear()
+        else:
+            await state.clear()
+            return await message.answer('❌Ошибка. Неверный формат данных.')
+    except:
+        return await message.answer('❌Ошибка')
 
 
 @router.callback_query(F.data == 'regenerate_zgs')
 async def cmd_start(call: types.CallbackQuery, state: FSMContext):
-    num = generation_zgs_results[call.from_user.id]['num']
-    active_comp = await general_queries.get_CompId(call.from_user.id)
-    json = await generation_logic.generate_zgs(active_comp, int(num))
-    msg = await call.message.edit_text(json['msg'], reply_markup=chairmans_kb.generation_zgs_kb)
-    generation_zgs_results[call.from_user.id] = {'json': json, 'num': num, 'compId': active_comp}
-    await state.clear()
+    try:
+        num = generation_zgs_results[call.from_user.id]['num']
+        active_comp = await general_queries.get_CompId(call.from_user.id)
+        json = await generation_logic.generate_zgs(active_comp, int(num))
+        msg = await call.message.edit_text(json['msg'], reply_markup=chairmans_kb.generation_zgs_kb)
+        generation_zgs_results[call.from_user.id] = {'json': json, 'num': num, 'compId': active_comp}
+        await state.clear()
+    except:
+        return await call.message.answer('❌Ошибка')
 
 
 @router.callback_query(F.data == 'save_zgs_result')
 async def cmd_start(call: types.CallbackQuery):
-    r = await chairman_queries.create_zgs(generation_zgs_results[call.from_user.id]['json'])
-    if r == 1:
-        await call.message.delete_reply_markup()
-        await call.message.answer('✅Результат сохранен.')
-    elif r == -1:
-        await call.message.delete_reply_markup()
-        await call.message.answer('❌Ошибка')
+    try:
+        r = await chairman_queries.create_zgs(generation_zgs_results[call.from_user.id]['json'])
+        if r == 1:
+            await call.message.delete_reply_markup()
+            await call.message.answer('✅Результат сохранен.')
+        elif r == -1:
+            await call.message.delete_reply_markup()
+            await call.message.answer('❌Ошибка')
+    except:
+        return await call.message.answer('❌Ошибка')
 
 
 @router.callback_query(F.data == 'end_zgs_generation_proces')
@@ -578,33 +587,46 @@ async def cmd_start(call: types.CallbackQuery):
 
 @router.callback_query(F.data == 'edit_zgs')
 async def cmd_start(call: types.CallbackQuery):
-    markup = await chairmans_kb.get_gen_zgs_edit_markup_01(generation_zgs_results[call.from_user.id]['json'])
-    await call.message.edit_reply_markup(reply_markup=markup)
+    try:
+        markup = await chairmans_kb.get_gen_zgs_edit_markup_01(generation_zgs_results[call.from_user.id]['json'])
+        await call.message.edit_reply_markup(reply_markup=markup)
+    except:
+        return await call.message.answer('❌Ошибка')
 
 
 @router.callback_query(F.data.startswith('zgs_generation_'))
 async def cmd_start(call: types.CallbackQuery):
-    judgeId = int(call.data.replace('zgs_generation_', ''))
-    generation_zgs_results[call.from_user.id]['current'] = judgeId
-    markup = await chairmans_kb.get_gen_zgs_edit_markup_02(generation_zgs_results[call.from_user.id]['json'], generation_zgs_results[call.from_user.id]['compId'])
-    await call.message.edit_reply_markup(reply_markup=markup)
+    try:
+        judgeId = int(call.data.replace('zgs_generation_', ''))
+        generation_zgs_results[call.from_user.id]['current'] = judgeId
+        markup = await chairmans_kb.get_gen_zgs_edit_markup_02(generation_zgs_results[call.from_user.id]['json'],
+                                                               generation_zgs_results[call.from_user.id]['compId'])
+        await call.message.edit_reply_markup(reply_markup=markup)
+    except:
+        return await call.message.answer('❌Ошибка')
 
 @router.callback_query(F.data.startswith('zgs_02_generation_'))
 async def cmd_start(call: types.CallbackQuery):
-    judgeId = int(call.data.replace('zgs_02_generation_', ''))
-    old = generation_zgs_results[call.from_user.id]['current']
-    compId = generation_zgs_results[call.from_user.id]['compId']
-    n = await chairman_queries.ids_to_names([judgeId], compId)
-    i = n.split()
-    if len(i) == 2:
-        lastname, firstname = i
-    else:
-        lastname = i[0]
-        firstname = ' '.join(i[1::])
+    try:
+        judgeId = int(call.data.replace('zgs_02_generation_', ''))
+        old = generation_zgs_results[call.from_user.id]['current']
+        compId = generation_zgs_results[call.from_user.id]['compId']
+        n = await chairman_queries.ids_to_names([judgeId], compId)
+        i = n.split()
+        if len(i) == 2:
+            lastname, firstname = i
+        else:
+            lastname = i[0]
+            firstname = ' '.join(i[1::])
 
-    oldf, oldl = generation_zgs_results[call.from_user.id]['json']['judges'][old]['firstName'], generation_zgs_results[call.from_user.id]['json']['judges'][old]['lastName']
-    generation_zgs_results[call.from_user.id]['json']['msg'] = generation_zgs_results[call.from_user.id]['json']['msg'].replace(oldl + ' ' + oldf, lastname + ' ' + firstname)
-    generation_zgs_results[call.from_user.id]['json']['judges'][judgeId] = generation_zgs_results[call.from_user.id]['json']['judges'][old]
-    generation_zgs_results[call.from_user.id]['json']['judges'].pop(old, None)
-    await call.message.edit_text(generation_zgs_results[call.from_user.id]['json']['msg'], reply_markup=chairmans_kb.generation_zgs_kb)
-
+        oldf, oldl = generation_zgs_results[call.from_user.id]['json']['judges'][old]['firstName'], \
+                     generation_zgs_results[call.from_user.id]['json']['judges'][old]['lastName']
+        generation_zgs_results[call.from_user.id]['json']['msg'] = generation_zgs_results[call.from_user.id]['json'][
+            'msg'].replace(oldl + ' ' + oldf, lastname + ' ' + firstname)
+        generation_zgs_results[call.from_user.id]['json']['judges'][judgeId] = \
+        generation_zgs_results[call.from_user.id]['json']['judges'][old]
+        generation_zgs_results[call.from_user.id]['json']['judges'].pop(old, None)
+        await call.message.edit_text(generation_zgs_results[call.from_user.id]['json']['msg'],
+                                     reply_markup=chairmans_kb.generation_zgs_kb)
+    except:
+        return await call.message.answer('❌Ошибка')
